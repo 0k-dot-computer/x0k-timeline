@@ -1,0 +1,40 @@
+[package]
+name = "x0k-timeline-emit"
+version = "0.2.0"
+edition = { workspace = true }
+license = "MIT"
+description = "Write to x0k-timeline from a Rust process: a tracing layer, with a crash-durable segment for when the service is down"
+repository = "https://github.com/0k-dot-computer/x0k-timeline"
+readme = "../../README.md"
+keywords = ["timeline", "observability", "opentelemetry", "tracing", "mcp"]
+
+[features]
+# Forward records to the timeline writer, with the crash-durable segment as
+# the fallback. x0k-env's own `auto-persist` turns this on.
+auto-persist = ["dep:x0k-timeline-sink", "dep:x0k-ipc-transport", "dep:x0k-serialization"]
+default = []
+
+[dependencies]
+anyhow = {workspace = true}
+arc-swap = "1"
+dashmap = "5.0"
+hex = "0.4"
+rand = {workspace = true}
+serde = {workspace = true}
+serde_json = {workspace = true}
+tokio = {workspace = true, features = ["fs", "io-util", "macros", "process", "rt", "rt-multi-thread", "signal", "sync", "time"]}
+tracing = {workspace = true}
+tracing-subscriber = {workspace = true, features = ["chrono", "fmt", "json", "registry"]}
+uuid = {workspace = true}
+x0k-timeline-record = { path = "../x0k-timeline-record" , version = "0.1.0" }
+
+x0k-timeline-sink = { path = "../x0k-timeline-sink", optional = true, default-features = false , version = "0.1.0" }
+x0k-serialization = { path = "../x0k-serialization", optional = true , version = "0.1.0" }
+# Kept beside the other auto-persist dependencies: a `[target]` table below
+# would capture it.
+x0k-ipc-transport = { path = "../x0k-ipc-transport", optional = true , version = "0.1.0" }
+
+[dev-dependencies]
+tempfile = "3.8"
+tokio = {workspace = true, features = ["macros", "rt", "rt-multi-thread", "net", "io-util", "sync", "time"]}
+x0k-ipc-transport = { path = "../x0k-ipc-transport" , version = "0.1.0" }

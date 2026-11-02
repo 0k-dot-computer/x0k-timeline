@@ -1,0 +1,116 @@
+{
+  "clause": "timeline-public-surface §1, §2",
+  "check": "ingest.batch",
+  "about": "The writer's `timeline.ingest` takes a batch of records and answers what it accepted and refused. `received_ids` are the ids the writer's store received, in order. A misfit record is refused with its field named, and the rest of its batch is kept.",
+  "vectors": [
+    {
+      "name": "a batch is accepted whole and kept in order",
+      "input": {
+        "records": [
+          {
+            "entry_kind": "log",
+            "id": "a",
+            "timestamp_us": 1700000000000001,
+            "level": "info",
+            "target": "conformance",
+            "retention_class": "log",
+            "fields": {},
+            "attributes": {},
+            "description": "first"
+          },
+          {
+            "entry_kind": "log",
+            "id": "b",
+            "timestamp_us": 1700000000000002,
+            "level": "info",
+            "target": "conformance",
+            "retention_class": "log",
+            "fields": {},
+            "attributes": {},
+            "description": "second"
+          },
+          {
+            "entry_kind": "log",
+            "id": "c",
+            "timestamp_us": 1700000000000003,
+            "level": "info",
+            "target": "conformance",
+            "retention_class": "log",
+            "fields": {},
+            "attributes": {},
+            "description": "third"
+          }
+        ]
+      },
+      "expect": {
+        "accepted": 3,
+        "received_ids": [
+          "a",
+          "b",
+          "c"
+        ]
+      }
+    },
+    {
+      "name": "an empty batch accepts nothing",
+      "input": {
+        "records": []
+      },
+      "expect": {
+        "accepted": 0,
+        "received_ids": []
+      }
+    },
+    {
+      "name": "a misfit record is refused by name and the rest of the batch kept",
+      "input": {
+        "records": [
+          {
+            "entry_kind": "log",
+            "id": "a",
+            "timestamp_us": 1700000000000001,
+            "level": "info",
+            "target": "conformance",
+            "retention_class": "log",
+            "fields": {},
+            "attributes": {},
+            "description": "first"
+          },
+          {
+            "entry_kind": "log",
+            "id": "b",
+            "level": "info",
+            "target": "conformance",
+            "retention_class": "log",
+            "fields": {},
+            "attributes": {}
+          },
+          {
+            "entry_kind": "log",
+            "id": "c",
+            "timestamp_us": 1700000000000003,
+            "level": "info",
+            "target": "conformance",
+            "retention_class": "log",
+            "fields": {},
+            "attributes": {},
+            "description": "third"
+          }
+        ]
+      },
+      "expect": {
+        "accepted": 2,
+        "refused": [
+          {
+            "index": 1,
+            "field": "timestamp_us"
+          }
+        ],
+        "received_ids": [
+          "a",
+          "c"
+        ]
+      }
+    }
+  ]
+}

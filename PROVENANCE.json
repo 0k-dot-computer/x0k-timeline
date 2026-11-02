@@ -1,0 +1,56 @@
+{
+  "schema": "x0k.provenance/v1",
+  "publication_uri": "x0k:publication/x0k-timeline",
+  "corpus_rev": "rkkrmtnpvttlpxmwxxqmqwnsnqmvntnl",
+  "corpus_commit": "c8475abfbde599ddb0e0ed54a5239c5b9e4a6d74",
+  "path_map": {
+    "decisions/architecture/substrate/timeline-public-surface.md": "corpora/x0k/decisions/architecture/substrate/timeline-public-surface.md",
+    "implementation/local-ipc/local-ipc.md": "corpora/x0k/implementation/local-ipc/local-ipc.md",
+    "implementation/substrate/timeline-record.md": "corpora/x0k/implementation/substrate/timeline-record.md"
+  },
+  "link_rewrites": [],
+  "crates": [
+    "x0k-timeline",
+    "x0k-timeline-emit",
+    "x0k-timeline-record",
+    "x0k-timeline-sink",
+    "x0k-timeline-store",
+    "x0k-serialization",
+    "x0k-ipc-transport"
+  ],
+  "excluded": [
+    "workspace-hack"
+  ],
+  "excluded_docs": [],
+  "literate_docs": [
+    "implementation/local-ipc/local-ipc.md",
+    "implementation/substrate/timeline-record.md"
+  ],
+  "overlay": [],
+  "dropped_generated": [],
+  "severed": [],
+  "documents": {
+    "x0k:architecture/timeline-public-surface": "decisions/architecture/substrate/timeline-public-surface.md"
+  },
+  "modules": [],
+  "modules_dir": null,
+  "module_version": null,
+  "module_version_source": null,
+  "proofs": {},
+  "proofs_run": true,
+  "prebuilt": null,
+  "license_applied": "MIT",
+  "license_source": "publication-doc",
+  "relicensed_from": {
+    "note": "What each crate's manifest declared in the private source tree this projection was taken from. Historical record of the relicense act, not this repository's terms: those are `license_applied` above and the LICENSE-* files beside this record.",
+    "declared": {
+      "x0k-ipc-transport": "(none)",
+      "x0k-serialization": "(none)",
+      "x0k-timeline": "LicenseRef-Proprietary",
+      "x0k-timeline-emit": "LicenseRef-Proprietary",
+      "x0k-timeline-record": "LicenseRef-Proprietary",
+      "x0k-timeline-sink": "LicenseRef-Proprietary",
+      "x0k-timeline-store": "(none)"
+    }
+  }
+}

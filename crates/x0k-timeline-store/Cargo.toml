@@ -1,0 +1,31 @@
+[package]
+name = "x0k-timeline-store"
+version = "0.1.0"
+edition = { workspace = true }
+description = "The timeline's store: content-addressed Parquet files, queried with DataFusion"
+license = "MIT"
+repository = "https://github.com/0k-dot-computer/x0k-timeline"
+readme = "../../README.md"
+keywords = ["timeline", "observability", "opentelemetry", "tracing", "mcp"]
+
+[lib]
+name = "x0k_parquet"
+
+[dependencies]
+arrow = { version = "58", default-features = false, features = ["ipc"] }
+arrow-select = { version = "58" }
+parquet = { version = "58", default-features = false, features = ["snap", "arrow", "async"] }
+datafusion = { version = "53", default-features = false, features = ["parquet", "sql", "recursive_protection"] }
+blake3 = "1"
+fs2 = "0.4"
+sqlparser = "0.61"
+tokio = {workspace = true, features = ["fs", "sync"]}
+serde = {workspace = true}
+serde_json = {workspace = true}
+thiserror = {workspace = true}
+tracing = {workspace = true}
+anyhow = {workspace = true}
+
+[dev-dependencies]
+tempfile = "3.0"
+tokio = {workspace = true, features = ["test-util"]}

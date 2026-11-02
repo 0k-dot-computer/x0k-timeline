@@ -1,0 +1,281 @@
+{
+  "clause": "timeline-public-surface §2",
+  "check": "otlp.map",
+  "about": "A process that cannot link the emit role sends OTLP over HTTP to the writer on localhost. Each span, log record and event becomes a record: the W3C identifiers in the core fields, lowercased; the resource and scope in `process` and `target`; every other attribute in `attributes` under its own key. The `x0k.` prefix is never taken from OTLP input. A record that cannot be a record is refused by name in OTLP's partial-success answer while the rest of its batch is kept; a body in another encoding is refused and writes nothing. The input is one request: its `path`, its `content_type` (JSON when absent) and its `body` (or `body_file`, relative to this directory, or `body_text`). The answer is the HTTP status, the response body (`text` when it is not JSON) and the records written, in the published format.",
+  "vectors": [
+    {
+      "name": "a span becomes a span record with its trace, process, scope and attributes",
+      "input": {
+        "path": "/v1/traces",
+        "body_file": "../tests/fixtures/otlp/upstream-trace.json"
+      },
+      "expect": {
+        "status": 200,
+        "records": [
+          {
+            "entry_kind": "span",
+            "trace_id": "5b8efff798038103d269b633813fc60c",
+            "span_id": "eee19b7ec3c1b174",
+            "parent_span_id": "eee19b7ec3c1b173",
+            "event_type": "I'm a server span",
+            "started_at_us": 1544712660000000,
+            "ended_at_us": 1544712661000000,
+            "target": "my.library",
+            "process": {
+              "software_module": "my.service"
+            },
+            "attributes": {
+              "my.span.attr": "some value"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "a log record becomes a log record with its event, session, body and attributes, and never an x0k. attribute",
+      "input": {
+        "path": "/v1/logs",
+        "body": {
+          "resourceLogs": [
+            {
+              "resource": {
+                "attributes": [
+                  {
+                    "key": "service.name",
+                    "value": {
+                      "stringValue": "svc"
+                    }
+                  }
+                ]
+              },
+              "scopeLogs": [
+                {
+                  "scope": {
+                    "name": "scope.a"
+                  },
+                  "logRecords": [
+                    {
+                      "timeUnixNano": "1700000000000000000",
+                      "severityNumber": 9,
+                      "eventName": "user_prompt",
+                      "body": {
+                        "stringValue": "hello"
+                      },
+                      "attributes": [
+                        {
+                          "key": "session.id",
+                          "value": {
+                            "stringValue": "s-1"
+                          }
+                        },
+                        {
+                          "key": "x0k.intent_id",
+                          "value": {
+                            "stringValue": "forged"
+                          }
+                        },
+                        {
+                          "key": "kept",
+                          "value": {
+                            "stringValue": "yes"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "expect": {
+        "status": 200,
+        "records": [
+          {
+            "entry_kind": "log",
+            "timestamp_us": 1700000000000000,
+            "event_type": "user_prompt",
+            "session_id": "s-1",
+            "description": "hello",
+            "target": "scope.a",
+            "process": {
+              "software_module": "svc"
+            },
+            "attributes": {
+              "kept": "yes",
+              "x0k.intent_id": null
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "a span with no trace is refused by name and the rest of its batch kept",
+      "input": {
+        "path": "/v1/traces",
+        "body": {
+          "resourceSpans": [
+            {
+              "resource": {
+                "attributes": [
+                  {
+                    "key": "service.name",
+                    "value": {
+                      "stringValue": "svc"
+                    }
+                  }
+                ]
+              },
+              "scopeSpans": [
+                {
+                  "scope": {
+                    "name": "scope.s"
+                  },
+                  "spans": [
+                    {
+                      "traceId": "5B8EFFF798038103D269B633813FC60C",
+                      "spanId": "EEE19B7EC3C1B174",
+                      "name": "good",
+                      "startTimeUnixNano": "1544712660000000000",
+                      "endTimeUnixNano": "1544712661000000000",
+                      "kind": 2
+                    },
+                    {
+                      "traceId": "",
+                      "spanId": "EEE19B7EC3C1B175",
+                      "name": "no trace",
+                      "startTimeUnixNano": "1544712660000000000",
+                      "endTimeUnixNano": "1544712661000000000",
+                      "kind": 2
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "expect": {
+        "status": 200,
+        "response": {
+          "partialSuccess": {
+            "rejectedSpans": 1,
+            "errorMessage": {
+              "$contains": "traceId"
+            }
+          }
+        },
+        "records": [
+          {
+            "entry_kind": "span",
+            "event_type": "good",
+            "trace_id": "5b8efff798038103d269b633813fc60c"
+          }
+        ]
+      }
+    },
+    {
+      "name": "a body in another encoding is refused and writes nothing",
+      "input": {
+        "path": "/v1/traces",
+        "content_type": "application/x-protobuf",
+        "body_text": "\n\u0000"
+      },
+      "expect": {
+        "status": 415,
+        "response": {
+          "text": {
+            "$contains": "application/json"
+          }
+        },
+        "records": []
+      }
+    },
+    {
+      "name": "account identifiers never reach the published attributes",
+      "input": {
+        "path": "/v1/logs",
+        "body": {
+          "resourceLogs": [
+            {
+              "resource": {
+                "attributes": [
+                  {
+                    "key": "service.name",
+                    "value": {
+                      "stringValue": "claude-code"
+                    }
+                  }
+                ]
+              },
+              "scopeLogs": [
+                {
+                  "scope": {
+                    "name": "com.anthropic.claude_code.events"
+                  },
+                  "logRecords": [
+                    {
+                      "timeUnixNano": "1700000000000000000",
+                      "severityNumber": 9,
+                      "body": {
+                        "stringValue": "claude_code.user_prompt"
+                      },
+                      "attributes": [
+                        {
+                          "key": "user.email",
+                          "value": {
+                            "stringValue": "someone@example.com"
+                          }
+                        },
+                        {
+                          "key": "user.id",
+                          "value": {
+                            "stringValue": "u-1"
+                          }
+                        },
+                        {
+                          "key": "user.account_uuid",
+                          "value": {
+                            "stringValue": "00000000-0000-4000-8000-000000000001"
+                          }
+                        },
+                        {
+                          "key": "organization.id",
+                          "value": {
+                            "stringValue": "o-1"
+                          }
+                        },
+                        {
+                          "key": "kept",
+                          "value": {
+                            "stringValue": "yes"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "expect": {
+        "status": 200,
+        "records": [
+          {
+            "entry_kind": "log",
+            "attributes": {
+              "kept": "yes",
+              "user.email": null,
+              "user.id": null,
+              "user.account_uuid": null,
+              "organization.id": null
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

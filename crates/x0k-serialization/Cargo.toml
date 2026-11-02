@@ -1,0 +1,48 @@
+[package]
+name = "x0k-serialization"
+version = "0.1.0"
+edition = { workspace = true }
+description = "Zero-overhead serialization abstraction layer for x0k protocol versioning"
+authors = ["x0k Team"]
+license = "MIT"
+repository = "https://github.com/0k-dot-computer/x0k-timeline"
+readme = "../../README.md"
+keywords = ["timeline", "observability", "opentelemetry", "tracing", "mcp"]
+
+[features]
+# Exactly one format must be enabled at compile time for zero overhead
+default = ["postcard-format"]
+
+bincode-format = ["bincode"]
+postcard-format = ["postcard", "postcard-serializable-types", "postcard-serializable"]
+json-format = ["serde_json"]
+
+[dependencies]
+# Core serialization support
+serde = {workspace = true}
+thiserror = {workspace = true}
+anyhow = {workspace = true}
+
+# Format implementations (exactly one enabled)
+bincode = { version = "1.3", optional = true }
+postcard = { version = "1.0", features = ["alloc"], optional = true }
+serde_json = {workspace = true, optional = true}
+
+# Postcard compile-time validation (required when using postcard-format)
+postcard-serializable-types = { optional = true , version = "0.1.0" }
+postcard-serializable = { optional = true , version = "0.1.0" }
+
+# Local storage format (rkyv for zero-copy reads)
+rkyv = { version = "0.7", features = ["validation", "alloc", "size_32"] }
+
+# Versioning
+semver = { version = "1.0", features = ["serde"] }
+
+# workspace-hack pulls the union of all workspace features (incl. tokio/mio),
+# which does not build on wasm32. x0k-serialization is wasm-safe on its own, so
+# gate the hakari shim off the wasm target (same pattern the motif crates use).
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+
+[dev-dependencies]
+serde_json = {workspace = true}
+postcard-serializable = { version = "0.1.0" }

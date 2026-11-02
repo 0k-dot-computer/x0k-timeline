@@ -1,0 +1,53 @@
+[package]
+name = "x0k-timeline"
+version = "0.2.0"
+edition = { workspace = true }
+license = "MIT"
+description = "One timeline for every process on a machine: OpenTelemetry in, SQL and MCP out"
+repository = "https://github.com/0k-dot-computer/x0k-timeline"
+readme = "../../README.md"
+keywords = ["timeline", "observability", "opentelemetry", "tracing", "mcp"]
+
+[lib]
+name = "x0k_timeline_query"
+
+[[bin]]
+name = "x0k-timeline"
+path = "src/bin/x0k-timeline.rs"
+
+[dependencies]
+# Columnar engine — the timeline service is the place that links
+# arrow/parquet/datafusion: it writes and queries the store. Clients never do.
+x0k-timeline-store = { path = "../x0k-timeline-store" , version = "0.1.0" }
+x0k-timeline-sink = { path = "../x0k-timeline-sink", default-features = false, features = ["parquet"] , version = "0.1.0" }
+arrow = { version = "58", default-features = false, features = ["ipc", "prettyprint"] }
+
+# The writer's IPC surface: the timeline socket clients forward to.
+x0k-ipc-transport = { path = "../x0k-ipc-transport" , version = "0.1.0" }
+x0k-serialization = { path = "../x0k-serialization" , version = "0.1.0" }
+uuid = { workspace = true }
+
+# The OTLP/HTTP receiver (src/otlp.rs); the same axum x0k-mcp serves with.
+axum = "0.8"
+x0k-timeline-record = { path = "../x0k-timeline-record" , version = "0.1.0" }
+
+rmcp = { version = "0.12", features = [
+    "server",
+    "transport-streamable-http-server",
+    "transport-io",
+] }
+schemars = "1.0"
+
+
+tokio = { workspace = true, features = ["rt-multi-thread", "macros", "signal"] }
+tokio-util = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+[dev-dependencies]
+tempfile = "3"
+x0k-timeline-emit = { path = "../x0k-timeline-emit", features = ["auto-persist"] , version = "0.2.0" }

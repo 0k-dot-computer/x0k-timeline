@@ -1,0 +1,27 @@
+[workspace]
+resolver = "2"
+members = ["crates/x0k-timeline", "crates/x0k-timeline-emit", "crates/x0k-timeline-record", "crates/x0k-timeline-sink", "crates/x0k-timeline-store", "crates/x0k-serialization", "crates/x0k-ipc-transport",
+]
+
+[workspace.package]
+edition = "2021"
+
+[workspace.dependencies]
+anyhow = "1.0"
+async-trait = "0.1"
+dirs = "5.0"
+rand = "0.8"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "1.0"
+tokio = { version = "1", features = ["full"] }
+tokio-util = "0.7"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+uuid = { version = "1.0", features = ["v4", "serde"] }
+
+[profile.dev]
+opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = 3

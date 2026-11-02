@@ -1,0 +1,1084 @@
+{
+  "clause": "timeline-public-surface §4",
+  "check": "reader.filter",
+  "about": "The base reader decodes segments with the codec alone and filters them. `segments` are records read from segments, `store` records from the store (absent: none; `unreachable`: the store cannot be reached). A filter field narrows by it; fields combine as and. `from_us` is inclusive and `to_us` exclusive; `level` is a set of levels; `target` matches as a prefix; `process` matches the fields it names. The answer is the ids, in timestamp order; a record that has reached both a segment and the store is counted once.",
+  "vectors": [
+    {
+      "name": "no filter answers every record",
+      "input": {
+        "segments": [
+          {
+            "entry_kind": "log",
+            "id": "r1",
+            "timestamp_us": 1000,
+            "level": "info",
+            "target": "app::a",
+            "retention_class": "log",
+            "fields": {},
+            "attributes": {},
+            "session_id": "s1",
+            "process": {
+              "software_module": "app",
+              "pid": 1
+            },
+            "node": "n1",
+            "trace_id": "5b8efff798038103d269b633813fc60c"
+          },
+          {
+            "entry_kind": "log",
+            "id": "r2",
+            "timestamp_us": 2000,
+            "level": "warn",
+            "target": "app::b",
+            "retention_class": "log",
+            "fields": {},
+            "attributes": {},
+            "session_id": "s1",
+            "process": {
+              "software_module": "app",
+              "pid": 1
+            },
+            "node": "n1",
+            "trace_id": "0af7651916cd43dd8448eb211c80319c"
+          },
+          {
+            "entry_kind": "span",
+            "id": "r3",
+            "timestamp_us": 3000,
+            "level": "info",
+            "target": "app::a",
+            "retention_class": "span",
+            "fields": {},
+            "attributes": {},
+            "session_id": "s2",
+            "process": {
+              "software_module": "app",
+              "pid": 2
+            },
+            "node": "n2",
+            "trace_id": "5b8efff798038103d269b633813fc60c",
+            "span_id": "eee19b7ec3c1b174",
+            "started_at_us": 3000,
+            "ended_at_us": 3500
+          },
+          {
+            "entry_kind": "log",
+            "id": "r4",
+            "timestamp_us": 4000,
+            "level": "error",
+            "target": "other",
+            "retention_class": "log",
+            "fields": {},
+            "attributes": {},
+            "session_id": "s2",
+            "process": {
+              "software_module": "app",
+              "pid": 2
+            },
+            "node": "n2"
+          },
+          {
+            "entry_kind": "log",
+            "id": "r5",
+            "timestamp_us": 5000,
+            "level": "info",
+            "target": "app::a",
+            "retention_class": "log",
+            "fields": {},
+            "attributes": {},
+            "session_id": "s1",
+            "process": {
+              "software_module": "app",
+              "pid": 1
+            },
+            "node": "n1",
+            "trace_id": "5b8efff798038103d269b633813fc60c"
+          }
+        ],
+        "filter": {}
+      },
+      "expect": {
+        "ids": [
+          "r1",
+          "r2",
+          "r3",
+          "r4",
+          "r5"
+        ]
+      }
+    },
+    {
+      "name": "a time range takes its start and not its end",
+      "input": {
+        "segments": [
+          {
+            "entry_kind": "log",
+            "id": "r1",
+            "timestamp_us": 1000,
+            "level": "info",
+            "target": "app::a",
+            "retention_class": "log",
+            "fields": {},
+            "attributes": {},
+            "session_id": "s1",
+            "process": {
+              "software_module": "app",
+              "pid": 1
+            },
+            "node": "n1",
+            "trace_id": "5b8efff798038103d269b633813fc60c"
+          },
+          {
+            "entry_kind": "log",
+            "id": "r2",
+            "timestamp_us": 2000,
+            "level": "warn",
+            "target": "app::b",
+            "retention_class": "log",
+            "fields": {},
+            "attributes": {},
+            "session_id": "s1",
+            "process": {
+              "software_module": "app",
+              "pid": 1
+            },
+            "node": "n1",
+            "trace_id": "0af7651916cd43dd8448eb211c80319c"
+          },
+          {
+            "entry_kind": "span",
+            "id": "r3",
+            "timestamp_us": 3000,
+            "level": "info",
+            "target": "app::a",
+            "retention_class": "span",
+            "fields": {},
+            "attributes": {},
+            "session_id": "s2",
+            "process": {
+              "software_module": "app",
+              "pid": 2
+            },
+            "node": "n2",
+            "trace_id": "5b8efff798038103d269b633813fc60c",
+            "span_id": "eee19b7ec3c1b174",
+            "started_at_us": 3000,
+            "ended_at_us": 3500
+          },
+          {
+            "entry_kind": "log",
+            "id": "r4",
+            "timestamp_us": 4000,
+            "level": "error",
+            "target": "other",
+            "retention_class": "log",
+            "fields": {},
+            "attributes": {},
+            "session_id": "s2",
+            "process": {
+              "software_module": "app",
+              "pid": 2
+            },
+            "node": "n2"
+          },
+          {
+            "entry_kind": "log",
+            "id": "r5",
+            "timestamp_us": 5000,
+            "level": "info",
+            "target": "app::a",
+            "retention_class": "log",
+            "fields": {},
+            "attributes": {},
+            "session_id": "s1",
+            "process": {
+              "software_module": "app",
+              "pid": 1
+            },
+            "node": "n1",
+            "trace_id": "5b8efff798038103d269b633813fc60c"
+          }
+        ],
+        "filter": {
+          "from_us": 2000,
+          "to_us": 4000
+        }
+      },
+      "expect": {
+        "ids": [
+          "r2",
+          "r3"
+        ]
+      }
+    },
+    {
+      "name": "levels filter as a set",
+      "input": {
+        "segments": [
+          {
+            "entry_kind": "log",
+            "id": "r1",
+            "timestamp_us": 1000,
+            "level": "info",
+            "target": "app::a",
+            "retention_class": "log",
+            "fields": {},
+            "attributes": {},
+            "session_id": "s1",
+            "process": {
+              "software_module": "app",
+              "pid": 1
+            },
+            "node": "n1",
+            "trace_id": "5b8efff798038103d269b633813fc60c"
+          },
+          {
+            "entry_kind": "log",
+            "id": "r2",
+            "timestamp_us": 2000,
+            "level": "warn",
+            "target": "app::b",
+            "retention_class": "log",
+            "fields": {},
+            "attributes": {},
+            "session_id": "s1",
+            "process": {
+              "software_module": "app",
+              "pid": 1
+            },
+            "node": "n1",
+            "trace_id": "0af7651916cd43dd8448eb211c80319c"
+          },
+          {
+            "entry_kind": "span",
+            "id": "r3",
+            "timestamp_us": 3000,
+            "level": "info",
+            "target": "app::a",
+            "retention_class": "span",
+            "fields": {},
+            "attributes": {},
+            "session_id": "s2",
+            "process": {
+              "software_module": "app",
+              "pid": 2
+            },
+            "node": "n2",
+            "trace_id": "5b8efff798038103d269b633813fc60c",
+            "span_id": "eee19b7ec3c1b174",
+            "started_at_us": 3000,
+            "ended_at_us": 3500
+          },
+          {
+            "entry_kind": "log",
+            "id": "r4",
+            "timestamp_us": 4000,
+            "level": "error",
+            "target": "other",
+            "retention_class": "log",
+            "fields": {},
+            "attributes": {},
+            "session_id": "s2",
+            "process": {
+              "software_module": "app",
+              "pid": 2
+            },
+            "node": "n2"
+          },
+          {
+            "entry_kind": "log",
+            "id": "r5",
+            "timestamp_us": 5000,
+            "level": "info",
+            "target": "app::a",
+            "retention_class": "log",
+            "fields": {},
+            "attributes": {},
+            "session_id": "s1",
+            "process": {
+              "software_module": "app",
+              "pid": 1
+            },
+            "node": "n1",
+            "trace_id": "5b8efff798038103d269b633813fc60c"
+          }
+        ],
+        "filter": {
+          "level": [
+            "warn",
+            "error"
+          ]
+        }
+      },
+      "expect": {
+        "ids": [
+          "r2",
+          "r4"
+        ]
+      }
+    },
+    {
+      "name": "a target filters as a prefix",
+      "input": {
+        "segments": [
+          {
+            "entry_kind": "log",
+            "id": "r1",
+            "timestamp_us": 1000,
+            "level": "info",
+            "target": "app::a",
+            "retention_class": "log",
+            "fields": {},
+            "attributes": {},
+            "session_id": "s1",
+            "process": {
+              "software_module": "app",
+              "pid": 1
+            },
+            "node": "n1",
+            "trace_id": "5b8efff798038103d269b633813fc60c"
+          },
+          {
+            "entry_kind": "log",
+            "id": "r2",
+            "timestamp_us": 2000,
+            "level": "warn",
+            "target": "app::b",
+            "retention_class": "log",
+            "fields": {},
+            "attributes": {},
+            "session_id": "s1",
+            "process": {
+              "software_module": "app",
+              "pid": 1
+            },
+            "node": "n1",
+            "trace_id": "0af7651916cd43dd8448eb211c80319c"
+          },
+          {
+            "entry_kind": "span",
+            "id": "r3",
+            "timestamp_us": 3000,
+            "level": "info",
+            "target": "app::a",
+            "retention_class": "span",
+            "fields": {},
+            "attributes": {},
+            "session_id": "s2",
+            "process": {
+              "software_module": "app",
+              "pid": 2
+            },
+            "node": "n2",
+            "trace_id": "5b8efff798038103d269b633813fc60c",
+            "span_id": "eee19b7ec3c1b174",
+            "started_at_us": 3000,
+            "ended_at_us": 3500
+          },
+          {
+            "entry_kind": "log",
+            "id": "r4",
+            "timestamp_us": 4000,
+            "level": "error",
+            "target": "other",
+            "retention_class": "log",
+            "fields": {},
+            "attributes": {},
+            "session_id": "s2",
+            "process": {
+              "software_module": "app",
+              "pid": 2
+            },
+            "node": "n2"
+          },
+          {
+            "entry_kind": "log",
+            "id": "r5",
+            "timestamp_us": 5000,
+            "level": "info",
+            "target": "app::a",
+            "retention_class": "log",
+            "fields": {},
+            "attributes": {},
+            "session_id": "s1",
+            "process": {
+              "software_module": "app",
+              "pid": 1
+            },
+            "node": "n1",
+            "trace_id": "5b8efff798038103d269b633813fc60c"
+          }
+        ],
+        "filter": {
+          "target": "app::a"
+        }
+      },
+      "expect": {
+        "ids": [
+          "r1",
+          "r3",
+          "r5"
+        ]
+      }
+    },
+    {
+      "name": "a session filters",
+      "input": {
+        "segments": [
+          {
+            "entry_kind": "log",
+            "id": "r1",
+            "timestamp_us": 1000,
+            "level": "info",
+            "target": "app::a",
+            "retention_class": "log",
+            "fields": {},
+            "attributes": {},
+            "session_id": "s1",
+            "process": {
+              "software_module": "app",
+              "pid": 1
+            },
+            "node": "n1",
+            "trace_id": "5b8efff798038103d269b633813fc60c"
+          },
+          {
+            "entry_kind": "log",
+            "id": "r2",
+            "timestamp_us": 2000,
+            "level": "warn",
+            "target": "app::b",
+            "retention_class": "log",
+            "fields": {},
+            "attributes": {},
+            "session_id": "s1",
+            "process": {
+              "software_module": "app",
+              "pid": 1
+            },
+            "node": "n1",
+            "trace_id": "0af7651916cd43dd8448eb211c80319c"
+          },
+          {
+            "entry_kind": "span",
+            "id": "r3",
+            "timestamp_us": 3000,
+            "level": "info",
+            "target": "app::a",
+            "retention_class": "span",
+            "fields": {},
+            "attributes": {},
+            "session_id": "s2",
+            "process": {
+              "software_module": "app",
+              "pid": 2
+            },
+            "node": "n2",
+            "trace_id": "5b8efff798038103d269b633813fc60c",
+            "span_id": "eee19b7ec3c1b174",
+            "started_at_us": 3000,
+            "ended_at_us": 3500
+          },
+          {
+            "entry_kind": "log",
+            "id": "r4",
+            "timestamp_us": 4000,
+            "level": "error",
+            "target": "other",
+            "retention_class": "log",
+            "fields": {},
+            "attributes": {},
+            "session_id": "s2",
+            "process": {
+              "software_module": "app",
+              "pid": 2
+            },
+            "node": "n2"
+          },
+          {
+            "entry_kind": "log",
+            "id": "r5",
+            "timestamp_us": 5000,
+            "level": "info",
+            "target": "app::a",
+            "retention_class": "log",
+            "fields": {},
+            "attributes": {},
+            "session_id": "s1",
+            "process": {
+              "software_module": "app",
+              "pid": 1
+            },
+            "node": "n1",
+            "trace_id": "5b8efff798038103d269b633813fc60c"
+          }
+        ],
+        "filter": {
+          "session_id": "s2"
+        }
+      },
+      "expect": {
+        "ids": [
+          "r3",
+          "r4"
+        ]
+      }
+    },
+    {
+      "name": "a trace filters, across entry kinds",
+      "input": {
+        "segments": [
+          {
+            "entry_kind": "log",
+            "id": "r1",
+            "timestamp_us": 1000,
+            "level": "info",
+            "target": "app::a",
+            "retention_class": "log",
+            "fields": {},
+            "attributes": {},
+            "session_id": "s1",
+            "process": {
+              "software_module": "app",
+              "pid": 1
+            },
+            "node": "n1",
+            "trace_id": "5b8efff798038103d269b633813fc60c"
+          },
+          {
+            "entry_kind": "log",
+            "id": "r2",
+            "timestamp_us": 2000,
+            "level": "warn",
+            "target": "app::b",
+            "retention_class": "log",
+            "fields": {},
+            "attributes": {},
+            "session_id": "s1",
+            "process": {
+              "software_module": "app",
+              "pid": 1
+            },
+            "node": "n1",
+            "trace_id": "0af7651916cd43dd8448eb211c80319c"
+          },
+          {
+            "entry_kind": "span",
+            "id": "r3",
+            "timestamp_us": 3000,
+            "level": "info",
+            "target": "app::a",
+            "retention_class": "span",
+            "fields": {},
+            "attributes": {},
+            "session_id": "s2",
+            "process": {
+              "software_module": "app",
+              "pid": 2
+            },
+            "node": "n2",
+            "trace_id": "5b8efff798038103d269b633813fc60c",
+            "span_id": "eee19b7ec3c1b174",
+            "started_at_us": 3000,
+            "ended_at_us": 3500
+          },
+          {
+            "entry_kind": "log",
+            "id": "r4",
+            "timestamp_us": 4000,
+            "level": "error",
+            "target": "other",
+            "retention_class": "log",
+            "fields": {},
+            "attributes": {},
+            "session_id": "s2",
+            "process": {
+              "software_module": "app",
+              "pid": 2
+            },
+            "node": "n2"
+          },
+          {
+            "entry_kind": "log",
+            "id": "r5",
+            "timestamp_us": 5000,
+            "level": "info",
+            "target": "app::a",
+            "retention_class": "log",
+            "fields": {},
+            "attributes": {},
+            "session_id": "s1",
+            "process": {
+              "software_module": "app",
+              "pid": 1
+            },
+            "node": "n1",
+            "trace_id": "5b8efff798038103d269b633813fc60c"
+          }
+        ],
+        "filter": {
+          "trace_id": "5b8efff798038103d269b633813fc60c"
+        }
+      },
+      "expect": {
+        "ids": [
+          "r1",
+          "r3",
+          "r5"
+        ]
+      }
+    },
+    {
+      "name": "a process filters by its pid",
+      "input": {
+        "segments": [
+          {
+            "entry_kind": "log",
+            "id": "r1",
+            "timestamp_us": 1000,
+            "level": "info",
+            "target": "app::a",
+            "retention_class": "log",
+            "fields": {},
+            "attributes": {},
+            "session_id": "s1",
+            "process": {
+              "software_module": "app",
+              "pid": 1
+            },
+            "node": "n1",
+            "trace_id": "5b8efff798038103d269b633813fc60c"
+          },
+          {
+            "entry_kind": "log",
+            "id": "r2",
+            "timestamp_us": 2000,
+            "level": "warn",
+            "target": "app::b",
+            "retention_class": "log",
+            "fields": {},
+            "attributes": {},
+            "session_id": "s1",
+            "process": {
+              "software_module": "app",
+              "pid": 1
+            },
+            "node": "n1",
+            "trace_id": "0af7651916cd43dd8448eb211c80319c"
+          },
+          {
+            "entry_kind": "span",
+            "id": "r3",
+            "timestamp_us": 3000,
+            "level": "info",
+            "target": "app::a",
+            "retention_class": "span",
+            "fields": {},
+            "attributes": {},
+            "session_id": "s2",
+            "process": {
+              "software_module": "app",
+              "pid": 2
+            },
+            "node": "n2",
+            "trace_id": "5b8efff798038103d269b633813fc60c",
+            "span_id": "eee19b7ec3c1b174",
+            "started_at_us": 3000,
+            "ended_at_us": 3500
+          },
+          {
+            "entry_kind": "log",
+            "id": "r4",
+            "timestamp_us": 4000,
+            "level": "error",
+            "target": "other",
+            "retention_class": "log",
+            "fields": {},
+            "attributes": {},
+            "session_id": "s2",
+            "process": {
+              "software_module": "app",
+              "pid": 2
+            },
+            "node": "n2"
+          },
+          {
+            "entry_kind": "log",
+            "id": "r5",
+            "timestamp_us": 5000,
+            "level": "info",
+            "target": "app::a",
+            "retention_class": "log",
+            "fields": {},
+            "attributes": {},
+            "session_id": "s1",
+            "process": {
+              "software_module": "app",
+              "pid": 1
+            },
+            "node": "n1",
+            "trace_id": "5b8efff798038103d269b633813fc60c"
+          }
+        ],
+        "filter": {
+          "process": {
+            "pid": 2
+          }
+        }
+      },
+      "expect": {
+        "ids": [
+          "r3",
+          "r4"
+        ]
+      }
+    },
+    {
+      "name": "a node filters",
+      "input": {
+        "segments": [
+          {
+            "entry_kind": "log",
+            "id": "r1",
+            "timestamp_us": 1000,
+            "level": "info",
+            "target": "app::a",
+            "retention_class": "log",
+            "fields": {},
+            "attributes": {},
+            "session_id": "s1",
+            "process": {
+              "software_module": "app",
+              "pid": 1
+            },
+            "node": "n1",
+            "trace_id": "5b8efff798038103d269b633813fc60c"
+          },
+          {
+            "entry_kind": "log",
+            "id": "r2",
+            "timestamp_us": 2000,
+            "level": "warn",
+            "target": "app::b",
+            "retention_class": "log",
+            "fields": {},
+            "attributes": {},
+            "session_id": "s1",
+            "process": {
+              "software_module": "app",
+              "pid": 1
+            },
+            "node": "n1",
+            "trace_id": "0af7651916cd43dd8448eb211c80319c"
+          },
+          {
+            "entry_kind": "span",
+            "id": "r3",
+            "timestamp_us": 3000,
+            "level": "info",
+            "target": "app::a",
+            "retention_class": "span",
+            "fields": {},
+            "attributes": {},
+            "session_id": "s2",
+            "process": {
+              "software_module": "app",
+              "pid": 2
+            },
+            "node": "n2",
+            "trace_id": "5b8efff798038103d269b633813fc60c",
+            "span_id": "eee19b7ec3c1b174",
+            "started_at_us": 3000,
+            "ended_at_us": 3500
+          },
+          {
+            "entry_kind": "log",
+            "id": "r4",
+            "timestamp_us": 4000,
+            "level": "error",
+            "target": "other",
+            "retention_class": "log",
+            "fields": {},
+            "attributes": {},
+            "session_id": "s2",
+            "process": {
+              "software_module": "app",
+              "pid": 2
+            },
+            "node": "n2"
+          },
+          {
+            "entry_kind": "log",
+            "id": "r5",
+            "timestamp_us": 5000,
+            "level": "info",
+            "target": "app::a",
+            "retention_class": "log",
+            "fields": {},
+            "attributes": {},
+            "session_id": "s1",
+            "process": {
+              "software_module": "app",
+              "pid": 1
+            },
+            "node": "n1",
+            "trace_id": "5b8efff798038103d269b633813fc60c"
+          }
+        ],
+        "filter": {
+          "node": "n2"
+        }
+      },
+      "expect": {
+        "ids": [
+          "r3",
+          "r4"
+        ]
+      }
+    },
+    {
+      "name": "filters combine as and",
+      "input": {
+        "segments": [
+          {
+            "entry_kind": "log",
+            "id": "r1",
+            "timestamp_us": 1000,
+            "level": "info",
+            "target": "app::a",
+            "retention_class": "log",
+            "fields": {},
+            "attributes": {},
+            "session_id": "s1",
+            "process": {
+              "software_module": "app",
+              "pid": 1
+            },
+            "node": "n1",
+            "trace_id": "5b8efff798038103d269b633813fc60c"
+          },
+          {
+            "entry_kind": "log",
+            "id": "r2",
+            "timestamp_us": 2000,
+            "level": "warn",
+            "target": "app::b",
+            "retention_class": "log",
+            "fields": {},
+            "attributes": {},
+            "session_id": "s1",
+            "process": {
+              "software_module": "app",
+              "pid": 1
+            },
+            "node": "n1",
+            "trace_id": "0af7651916cd43dd8448eb211c80319c"
+          },
+          {
+            "entry_kind": "span",
+            "id": "r3",
+            "timestamp_us": 3000,
+            "level": "info",
+            "target": "app::a",
+            "retention_class": "span",
+            "fields": {},
+            "attributes": {},
+            "session_id": "s2",
+            "process": {
+              "software_module": "app",
+              "pid": 2
+            },
+            "node": "n2",
+            "trace_id": "5b8efff798038103d269b633813fc60c",
+            "span_id": "eee19b7ec3c1b174",
+            "started_at_us": 3000,
+            "ended_at_us": 3500
+          },
+          {
+            "entry_kind": "log",
+            "id": "r4",
+            "timestamp_us": 4000,
+            "level": "error",
+            "target": "other",
+            "retention_class": "log",
+            "fields": {},
+            "attributes": {},
+            "session_id": "s2",
+            "process": {
+              "software_module": "app",
+              "pid": 2
+            },
+            "node": "n2"
+          },
+          {
+            "entry_kind": "log",
+            "id": "r5",
+            "timestamp_us": 5000,
+            "level": "info",
+            "target": "app::a",
+            "retention_class": "log",
+            "fields": {},
+            "attributes": {},
+            "session_id": "s1",
+            "process": {
+              "software_module": "app",
+              "pid": 1
+            },
+            "node": "n1",
+            "trace_id": "5b8efff798038103d269b633813fc60c"
+          }
+        ],
+        "filter": {
+          "session_id": "s1",
+          "level": [
+            "info"
+          ]
+        }
+      },
+      "expect": {
+        "ids": [
+          "r1",
+          "r5"
+        ]
+      }
+    },
+    {
+      "name": "a record in both a segment and the store is counted once",
+      "input": {
+        "segments": [
+          {
+            "entry_kind": "log",
+            "id": "r1",
+            "timestamp_us": 1000,
+            "level": "info",
+            "target": "app::a",
+            "retention_class": "log",
+            "fields": {},
+            "attributes": {},
+            "session_id": "s1",
+            "process": {
+              "software_module": "app",
+              "pid": 1
+            },
+            "node": "n1",
+            "trace_id": "5b8efff798038103d269b633813fc60c"
+          },
+          {
+            "entry_kind": "log",
+            "id": "r2",
+            "timestamp_us": 2000,
+            "level": "warn",
+            "target": "app::b",
+            "retention_class": "log",
+            "fields": {},
+            "attributes": {},
+            "session_id": "s1",
+            "process": {
+              "software_module": "app",
+              "pid": 1
+            },
+            "node": "n1",
+            "trace_id": "0af7651916cd43dd8448eb211c80319c"
+          }
+        ],
+        "store": [
+          {
+            "entry_kind": "log",
+            "id": "r2",
+            "timestamp_us": 2000,
+            "level": "warn",
+            "target": "app::b",
+            "retention_class": "log",
+            "fields": {},
+            "attributes": {},
+            "session_id": "s1",
+            "process": {
+              "software_module": "app",
+              "pid": 1
+            },
+            "node": "n1",
+            "trace_id": "0af7651916cd43dd8448eb211c80319c"
+          },
+          {
+            "entry_kind": "span",
+            "id": "r3",
+            "timestamp_us": 3000,
+            "level": "info",
+            "target": "app::a",
+            "retention_class": "span",
+            "fields": {},
+            "attributes": {},
+            "session_id": "s2",
+            "process": {
+              "software_module": "app",
+              "pid": 2
+            },
+            "node": "n2",
+            "trace_id": "5b8efff798038103d269b633813fc60c",
+            "span_id": "eee19b7ec3c1b174",
+            "started_at_us": 3000,
+            "ended_at_us": 3500
+          }
+        ],
+        "filter": {}
+      },
+      "expect": {
+        "ids": [
+          "r1",
+          "r2",
+          "r3"
+        ]
+      }
+    },
+    {
+      "name": "with the store unreachable the reader answers from segments alone and says so",
+      "input": {
+        "segments": [
+          {
+            "entry_kind": "log",
+            "id": "r1",
+            "timestamp_us": 1000,
+            "level": "info",
+            "target": "app::a",
+            "retention_class": "log",
+            "fields": {},
+            "attributes": {},
+            "session_id": "s1",
+            "process": {
+              "software_module": "app",
+              "pid": 1
+            },
+            "node": "n1",
+            "trace_id": "5b8efff798038103d269b633813fc60c"
+          },
+          {
+            "entry_kind": "log",
+            "id": "r2",
+            "timestamp_us": 2000,
+            "level": "warn",
+            "target": "app::b",
+            "retention_class": "log",
+            "fields": {},
+            "attributes": {},
+            "session_id": "s1",
+            "process": {
+              "software_module": "app",
+              "pid": 1
+            },
+            "node": "n1",
+            "trace_id": "0af7651916cd43dd8448eb211c80319c"
+          }
+        ],
+        "store": "unreachable",
+        "filter": {}
+      },
+      "expect": {
+        "ids": [
+          "r1",
+          "r2"
+        ],
+        "segments_only": true
+      }
+    }
+  ]
+}

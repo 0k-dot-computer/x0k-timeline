@@ -1,0 +1,45 @@
+{
+  "source": "implementation/substrate/timeline-record.md",
+  "source_hash": "40d9700703efef75",
+  "pipelines": [
+    {
+      "kind": "identity-tangle",
+      "input_hashes": {},
+      "config_hash": "49459286f9671e24",
+      "outputs": [
+        {
+          "path": "crates/x0k-timeline-record/Cargo.toml",
+          "hash": "0cb71ea68c21e432"
+        },
+        {
+          "path": "crates/x0k-timeline-record/src/lib.rs",
+          "hash": "b8b8c3be32b5a8ae"
+        },
+        {
+          "path": "crates/x0k-timeline-record/src/json.rs",
+          "hash": "7d22bed649f7170b"
+        },
+        {
+          "path": "crates/x0k-timeline-record/src/span.rs",
+          "hash": "c6f0df21567ef3a6"
+        },
+        {
+          "path": "crates/x0k-timeline-record/src/record.rs",
+          "hash": "79adabf36fc91ba5"
+        },
+        {
+          "path": "crates/x0k-timeline-record/src/overrides.rs",
+          "hash": "8b5e1dcd9537104e"
+        },
+        {
+          "path": "crates/x0k-timeline-record/src/pause.rs",
+          "hash": "ad95d7c9799e072a"
+        },
+        {
+          "path": "crates/x0k-timeline-record/src/trace_context.rs",
+          "hash": "9c0b74a0bcf39d32"
+        }
+      ]
+    }
+  ]
+}

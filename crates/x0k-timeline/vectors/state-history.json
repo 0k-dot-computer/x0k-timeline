@@ -1,0 +1,541 @@
+{
+  "clause": "timeline-public-surface §5",
+  "check": "state.fold",
+  "about": "A state at a sequence is the latest snapshot at or before it, with every delta after it applied in order. A gap in a journal's sequence is reported and never folded across. A journal's state and delta have its owner's shapes; these vectors' journals use JSON Merge Patch (RFC 7386) deltas, so a null removes a key. Only the named journal's rows fold. The answer is `state` (null when no snapshot is at or before the sequence), or `gap_at` naming the first missing sequence.",
+  "vectors": [
+    {
+      "name": "a state at a snapshot's sequence is that snapshot",
+      "input": {
+        "rows": [
+          {
+            "row": "snapshot",
+            "journal": "app",
+            "seq": 1,
+            "state": {
+              "count": 0,
+              "name": "a"
+            }
+          },
+          {
+            "row": "state_history",
+            "journal": "app",
+            "seq": 2,
+            "timestamp_us": 1700000000000002,
+            "action": "set",
+            "delta": {
+              "count": 1
+            }
+          },
+          {
+            "row": "state_history",
+            "journal": "other",
+            "seq": 2,
+            "timestamp_us": 1700000000000002,
+            "action": "set",
+            "delta": {
+              "count": 99
+            }
+          },
+          {
+            "row": "state_history",
+            "journal": "app",
+            "seq": 3,
+            "timestamp_us": 1700000000000003,
+            "action": "set",
+            "delta": {
+              "name": "b"
+            }
+          },
+          {
+            "row": "snapshot",
+            "journal": "app",
+            "seq": 4,
+            "state": {
+              "count": 10,
+              "name": "b"
+            }
+          },
+          {
+            "row": "state_history",
+            "journal": "app",
+            "seq": 5,
+            "timestamp_us": 1700000000000005,
+            "action": "set",
+            "delta": {
+              "count": 11
+            }
+          },
+          {
+            "row": "state_history",
+            "journal": "app",
+            "seq": 6,
+            "timestamp_us": 1700000000000006,
+            "action": "set",
+            "delta": {
+              "name": null
+            }
+          }
+        ],
+        "journal": "app",
+        "at_seq": 1
+      },
+      "expect": {
+        "state": {
+          "count": 0,
+          "name": "a"
+        }
+      }
+    },
+    {
+      "name": "deltas after the snapshot apply in order, and only the named journal's",
+      "input": {
+        "rows": [
+          {
+            "row": "snapshot",
+            "journal": "app",
+            "seq": 1,
+            "state": {
+              "count": 0,
+              "name": "a"
+            }
+          },
+          {
+            "row": "state_history",
+            "journal": "app",
+            "seq": 2,
+            "timestamp_us": 1700000000000002,
+            "action": "set",
+            "delta": {
+              "count": 1
+            }
+          },
+          {
+            "row": "state_history",
+            "journal": "other",
+            "seq": 2,
+            "timestamp_us": 1700000000000002,
+            "action": "set",
+            "delta": {
+              "count": 99
+            }
+          },
+          {
+            "row": "state_history",
+            "journal": "app",
+            "seq": 3,
+            "timestamp_us": 1700000000000003,
+            "action": "set",
+            "delta": {
+              "name": "b"
+            }
+          },
+          {
+            "row": "snapshot",
+            "journal": "app",
+            "seq": 4,
+            "state": {
+              "count": 10,
+              "name": "b"
+            }
+          },
+          {
+            "row": "state_history",
+            "journal": "app",
+            "seq": 5,
+            "timestamp_us": 1700000000000005,
+            "action": "set",
+            "delta": {
+              "count": 11
+            }
+          },
+          {
+            "row": "state_history",
+            "journal": "app",
+            "seq": 6,
+            "timestamp_us": 1700000000000006,
+            "action": "set",
+            "delta": {
+              "name": null
+            }
+          }
+        ],
+        "journal": "app",
+        "at_seq": 3
+      },
+      "expect": {
+        "state": {
+          "count": 1,
+          "name": "b"
+        }
+      }
+    },
+    {
+      "name": "a later snapshot replaces what came before it",
+      "input": {
+        "rows": [
+          {
+            "row": "snapshot",
+            "journal": "app",
+            "seq": 1,
+            "state": {
+              "count": 0,
+              "name": "a"
+            }
+          },
+          {
+            "row": "state_history",
+            "journal": "app",
+            "seq": 2,
+            "timestamp_us": 1700000000000002,
+            "action": "set",
+            "delta": {
+              "count": 1
+            }
+          },
+          {
+            "row": "state_history",
+            "journal": "other",
+            "seq": 2,
+            "timestamp_us": 1700000000000002,
+            "action": "set",
+            "delta": {
+              "count": 99
+            }
+          },
+          {
+            "row": "state_history",
+            "journal": "app",
+            "seq": 3,
+            "timestamp_us": 1700000000000003,
+            "action": "set",
+            "delta": {
+              "name": "b"
+            }
+          },
+          {
+            "row": "snapshot",
+            "journal": "app",
+            "seq": 4,
+            "state": {
+              "count": 10,
+              "name": "b"
+            }
+          },
+          {
+            "row": "state_history",
+            "journal": "app",
+            "seq": 5,
+            "timestamp_us": 1700000000000005,
+            "action": "set",
+            "delta": {
+              "count": 11
+            }
+          },
+          {
+            "row": "state_history",
+            "journal": "app",
+            "seq": 6,
+            "timestamp_us": 1700000000000006,
+            "action": "set",
+            "delta": {
+              "name": null
+            }
+          }
+        ],
+        "journal": "app",
+        "at_seq": 4
+      },
+      "expect": {
+        "state": {
+          "count": 10,
+          "name": "b"
+        }
+      }
+    },
+    {
+      "name": "a delta after the later snapshot applies to it",
+      "input": {
+        "rows": [
+          {
+            "row": "snapshot",
+            "journal": "app",
+            "seq": 1,
+            "state": {
+              "count": 0,
+              "name": "a"
+            }
+          },
+          {
+            "row": "state_history",
+            "journal": "app",
+            "seq": 2,
+            "timestamp_us": 1700000000000002,
+            "action": "set",
+            "delta": {
+              "count": 1
+            }
+          },
+          {
+            "row": "state_history",
+            "journal": "other",
+            "seq": 2,
+            "timestamp_us": 1700000000000002,
+            "action": "set",
+            "delta": {
+              "count": 99
+            }
+          },
+          {
+            "row": "state_history",
+            "journal": "app",
+            "seq": 3,
+            "timestamp_us": 1700000000000003,
+            "action": "set",
+            "delta": {
+              "name": "b"
+            }
+          },
+          {
+            "row": "snapshot",
+            "journal": "app",
+            "seq": 4,
+            "state": {
+              "count": 10,
+              "name": "b"
+            }
+          },
+          {
+            "row": "state_history",
+            "journal": "app",
+            "seq": 5,
+            "timestamp_us": 1700000000000005,
+            "action": "set",
+            "delta": {
+              "count": 11
+            }
+          },
+          {
+            "row": "state_history",
+            "journal": "app",
+            "seq": 6,
+            "timestamp_us": 1700000000000006,
+            "action": "set",
+            "delta": {
+              "name": null
+            }
+          }
+        ],
+        "journal": "app",
+        "at_seq": 5
+      },
+      "expect": {
+        "state": {
+          "count": 11,
+          "name": "b"
+        }
+      }
+    },
+    {
+      "name": "a null in a delta removes its key",
+      "input": {
+        "rows": [
+          {
+            "row": "snapshot",
+            "journal": "app",
+            "seq": 1,
+            "state": {
+              "count": 0,
+              "name": "a"
+            }
+          },
+          {
+            "row": "state_history",
+            "journal": "app",
+            "seq": 2,
+            "timestamp_us": 1700000000000002,
+            "action": "set",
+            "delta": {
+              "count": 1
+            }
+          },
+          {
+            "row": "state_history",
+            "journal": "other",
+            "seq": 2,
+            "timestamp_us": 1700000000000002,
+            "action": "set",
+            "delta": {
+              "count": 99
+            }
+          },
+          {
+            "row": "state_history",
+            "journal": "app",
+            "seq": 3,
+            "timestamp_us": 1700000000000003,
+            "action": "set",
+            "delta": {
+              "name": "b"
+            }
+          },
+          {
+            "row": "snapshot",
+            "journal": "app",
+            "seq": 4,
+            "state": {
+              "count": 10,
+              "name": "b"
+            }
+          },
+          {
+            "row": "state_history",
+            "journal": "app",
+            "seq": 5,
+            "timestamp_us": 1700000000000005,
+            "action": "set",
+            "delta": {
+              "count": 11
+            }
+          },
+          {
+            "row": "state_history",
+            "journal": "app",
+            "seq": 6,
+            "timestamp_us": 1700000000000006,
+            "action": "set",
+            "delta": {
+              "name": null
+            }
+          }
+        ],
+        "journal": "app",
+        "at_seq": 6
+      },
+      "expect": {
+        "state": {
+          "count": 11
+        }
+      }
+    },
+    {
+      "name": "before the first snapshot there is no state",
+      "input": {
+        "rows": [
+          {
+            "row": "snapshot",
+            "journal": "app",
+            "seq": 1,
+            "state": {
+              "count": 0,
+              "name": "a"
+            }
+          },
+          {
+            "row": "state_history",
+            "journal": "app",
+            "seq": 2,
+            "timestamp_us": 1700000000000002,
+            "action": "set",
+            "delta": {
+              "count": 1
+            }
+          },
+          {
+            "row": "state_history",
+            "journal": "other",
+            "seq": 2,
+            "timestamp_us": 1700000000000002,
+            "action": "set",
+            "delta": {
+              "count": 99
+            }
+          },
+          {
+            "row": "state_history",
+            "journal": "app",
+            "seq": 3,
+            "timestamp_us": 1700000000000003,
+            "action": "set",
+            "delta": {
+              "name": "b"
+            }
+          },
+          {
+            "row": "snapshot",
+            "journal": "app",
+            "seq": 4,
+            "state": {
+              "count": 10,
+              "name": "b"
+            }
+          },
+          {
+            "row": "state_history",
+            "journal": "app",
+            "seq": 5,
+            "timestamp_us": 1700000000000005,
+            "action": "set",
+            "delta": {
+              "count": 11
+            }
+          },
+          {
+            "row": "state_history",
+            "journal": "app",
+            "seq": 6,
+            "timestamp_us": 1700000000000006,
+            "action": "set",
+            "delta": {
+              "name": null
+            }
+          }
+        ],
+        "journal": "app",
+        "at_seq": 0
+      },
+      "expect": {
+        "state": null
+      }
+    },
+    {
+      "name": "a gap in the sequence is reported, never folded across",
+      "input": {
+        "rows": [
+          {
+            "row": "snapshot",
+            "journal": "app",
+            "seq": 1,
+            "state": {
+              "count": 0
+            }
+          },
+          {
+            "row": "state_history",
+            "journal": "app",
+            "seq": 2,
+            "timestamp_us": 1700000000000002,
+            "action": "set",
+            "delta": {
+              "count": 1
+            }
+          },
+          {
+            "row": "state_history",
+            "journal": "app",
+            "seq": 4,
+            "timestamp_us": 1700000000000004,
+            "action": "set",
+            "delta": {
+              "count": 3
+            }
+          }
+        ],
+        "journal": "app",
+        "at_seq": 4
+      },
+      "expect": {
+        "gap_at": 3
+      }
+    }
+  ]
+}

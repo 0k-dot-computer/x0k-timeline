@@ -1,0 +1,36 @@
+[package]
+name = "x0k-ipc-transport"
+version = "0.1.0"
+edition = { workspace = true }
+description = "How a client on one machine reaches a service: a Unix socket or Windows named pipe the service owns"
+license = "MIT"
+repository = "https://github.com/0k-dot-computer/x0k-timeline"
+readme = "../../README.md"
+keywords = ["timeline", "observability", "opentelemetry", "tracing", "mcp"]
+
+[features]
+default = ["legacy"]
+legacy = ["dep:anyhow", "dep:async-trait", "dep:dirs", "dep:tracing", "dep:serde", "dep:x0k-serialization"]
+workspace-unified = [] # severed in this publication: its dependency is not published; enabling it does not build
+
+[dependencies]
+anyhow = {workspace = true, optional = true}
+async-trait = {workspace = true, optional = true}
+dirs = {workspace = true, optional = true}
+tokio = {workspace = true, features = ["io-util", "net", "rt", "sync", "time"]}
+tracing = {workspace = true, optional = true}
+serde = {workspace = true, optional = true}
+interprocess = { version = "2.4", features = ["tokio"] }
+blake3 = "1.5"
+x0k-serialization = { path = "../x0k-serialization", optional = true , version = "0.1.0" }
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
+[target.'cfg(windows)'.dependencies]
+widestring = "1"
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Security", "Win32_Security_Authorization", "Win32_System_Threading", "Win32_System_SystemServices", "Win32_Storage_FileSystem"] }
+
+[dev-dependencies]
+tempfile = "3"
+tokio = {workspace = true, features = ["test-util", "macros"]}

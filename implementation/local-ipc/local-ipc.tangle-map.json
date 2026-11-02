@@ -1,0 +1,29 @@
+{
+  "source": "implementation/local-ipc/local-ipc.md",
+  "source_hash": "ea08080ccd7d854b",
+  "pipelines": [
+    {
+      "kind": "identity-tangle",
+      "input_hashes": {},
+      "config_hash": "8683c5c50599889b",
+      "outputs": [
+        {
+          "path": "crates/x0k-ipc-transport/src/local.rs",
+          "hash": "eddced612d4c997b"
+        },
+        {
+          "path": "crates/x0k-ipc-transport/src/local_unix.rs",
+          "hash": "467f1e137a57535c"
+        },
+        {
+          "path": "crates/x0k-ipc-transport/src/local_windows.rs",
+          "hash": "7e5986963c7f6477"
+        },
+        {
+          "path": "crates/x0k-ipc-transport/tests/explicit_local.rs",
+          "hash": "2568bfa7b4d6ca15"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,137 @@
+{
+  "clause": "timeline-public-surface §7",
+  "check": "writer.pause",
+  "about": "The writer pauses and resumes while it runs. `steps` run in order: `pause` with a `reason`, `resume`, `ingest` with `records`, `state`, `restart` for a new writer, and `close_pipeline` so a row can no longer be written. The answer holds what each step answered, with `refused` true for a refusal, and `kept`, the records that reached the pipeline in order.",
+  "vectors": [
+    {
+      "name": "a paused writer takes every record, keeps the record class and discards the rest",
+      "input": {
+        "steps": [
+          {"op": "pause", "reason": "conformance"},
+          {
+            "op": "ingest",
+            "records": [
+              {"entry_kind": "log", "id": "l1", "timestamp_us": 1700000000000001, "level": "info", "target": "conformance", "retention_class": "log"},
+              {"entry_kind": "span", "id": "s1", "span_id": "s1", "trace_id": "t1", "started_at_us": 1700000000000002, "level": "info", "target": "conformance", "event_type": "work", "retention_class": "span"},
+              {"entry_kind": "activity", "id": "e1", "timestamp_us": 1700000000000003, "event_type": "task.done", "retention_class": "event"},
+              {"entry_kind": "activity", "id": "r1", "timestamp_us": 1700000000000004, "event_type": "decision.made", "retention_class": "record"}
+            ]
+          }
+        ]
+      },
+      "expect": {
+        "steps": [
+          {"paused": true, "reason": "conformance"},
+          {"accepted": 4, "discarded": 3}
+        ],
+        "kept": [
+          {"event_type": "timeline.paused", "retention_class": "record"},
+          {"id": "r1", "retention_class": "record"}
+        ]
+      }
+    },
+    {
+      "name": "a resume is a record-class row that carries the counts by class",
+      "input": {
+        "steps": [
+          {"op": "pause", "reason": "conformance"},
+          {
+            "op": "ingest",
+            "records": [
+              {"entry_kind": "log", "id": "l1", "timestamp_us": 1700000000000001, "level": "info", "target": "conformance", "retention_class": "log"},
+              {"entry_kind": "log", "id": "l2", "timestamp_us": 1700000000000002, "level": "info", "target": "conformance", "retention_class": "log"}
+            ]
+          },
+          {"op": "resume"}
+        ]
+      },
+      "expect": {
+        "steps": [
+          {"paused": true},
+          {"accepted": 2, "discarded": 2},
+          {"paused": true, "discarded": {"log": 2}}
+        ],
+        "kept": [
+          {"event_type": "timeline.paused"},
+          {
+            "event_type": "timeline.resumed",
+            "retention_class": "record",
+            "attributes": {"timeline.discarded.log": "2"}
+          }
+        ]
+      }
+    },
+    {
+      "name": "a second pause changes nothing",
+      "input": {
+        "steps": [
+          {"op": "pause", "reason": "first"},
+          {"op": "pause", "reason": "second"}
+        ]
+      },
+      "expect": {
+        "steps": [
+          {"paused": true, "reason": "first"},
+          {"paused": true, "reason": "first"}
+        ],
+        "kept": [{"event_type": "timeline.paused"}]
+      }
+    },
+    {
+      "name": "a resume of a writer not paused changes nothing",
+      "input": {"steps": [{"op": "resume"}]},
+      "expect": {"steps": [{"paused": false}], "kept": []}
+    },
+    {
+      "name": "a resumed writer keeps everything again",
+      "input": {
+        "steps": [
+          {"op": "pause", "reason": "conformance"},
+          {"op": "resume"},
+          {
+            "op": "ingest",
+            "records": [
+              {"entry_kind": "log", "id": "l1", "timestamp_us": 1700000000000001, "level": "info", "target": "conformance", "retention_class": "log"}
+            ]
+          }
+        ]
+      },
+      "expect": {
+        "steps": [{"paused": true}, {"paused": true}, {"accepted": 1, "discarded": 0}],
+        "kept": [
+          {"event_type": "timeline.paused"},
+          {"event_type": "timeline.resumed"},
+          {"id": "l1"}
+        ]
+      }
+    },
+    {
+      "name": "a pause whose row cannot be written is refused and the writer keeps recording",
+      "input": {
+        "steps": [
+          {"op": "close_pipeline"},
+          {"op": "pause", "reason": "conformance"},
+          {"op": "state"}
+        ]
+      },
+      "expect": {
+        "steps": [{"closed": true}, {"refused": true}, {"paused": false}],
+        "kept": []
+      }
+    },
+    {
+      "name": "a pause does not outlive the writer that took it",
+      "input": {
+        "steps": [
+          {"op": "pause", "reason": "conformance"},
+          {"op": "restart"},
+          {"op": "state"}
+        ]
+      },
+      "expect": {
+        "steps": [{"paused": true}, {"restarted": true}, {"paused": false}],
+        "kept": [{"event_type": "timeline.paused"}]
+      }
+    }
+  ]
+}

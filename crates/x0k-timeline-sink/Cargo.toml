@@ -1,0 +1,74 @@
+[package]
+name = "x0k-timeline-sink"
+version = "0.1.0"
+edition = { workspace = true }
+description = "The timeline's write path: the flush task, the shared write-ahead log and segment intake"
+license = "MIT"
+repository = "https://github.com/0k-dot-computer/x0k-timeline"
+readme = "../../README.md"
+keywords = ["timeline", "observability", "opentelemetry", "tracing", "mcp"]
+
+[lib]
+name = "x0k_activity_sink"
+
+[dependencies]
+# Core x0k dependencies
+x0k-timeline-record = { path = "../x0k-timeline-record" , version = "0.1.0" }
+# Postcard frames of the local timeline segment (base build)
+x0k-serialization = { path = "../x0k-serialization" , version = "0.1.0" }
+
+# Columnar timeline encode/read — pulled in ONLY under the `parquet` feature.
+# These are what dragged arrow/parquet/datafusion into every client that links
+# this crate (the DRIVER-1 binary-bloat linchpin). The daemon writer + Timeline
+# Query Service enable `parquet` (default-on); thin clients depend with
+# `default-features = false` and link none of the columnar stack — they keep
+# only the postcard-friendly TimelineRecord / SessionContext / SinkConfig /
+# routing surface.
+x0k-timeline-store = { path = "../x0k-timeline-store", optional = true , version = "0.1.0" }
+
+# Arrow/Parquet for RecordBatch/Schema types and writer properties
+arrow = { version = "58", default-features = false, features = ["ipc"], optional = true }
+arrow-select = { version = "58", optional = true }
+parquet = { version = "58", default-features = false, optional = true }
+
+# Error handling
+anyhow = {workspace = true}
+thiserror = {workspace = true}
+
+# Logging
+tracing = {workspace = true}
+
+# Serialization
+serde = {workspace = true}
+serde_json = {workspace = true}
+toml = "0.8"
+
+# UUIDs for entity IDs
+uuid = {workspace = true}
+
+# Async runtime
+tokio = {workspace = true, features = ["rt", "sync"]}
+futures-util = "0.3"
+
+# Home directory support
+dirs = {workspace = true}
+
+# Process liveness check for WAL recovery
+libc = "0.2"
+
+[features]
+# `parquet` (default-on) enables the in-process columnar encode + Arrow-IPC WAL:
+# the `flush_task` + `memtable` + `unified_schema` (RecordBatch builders) + `wal`
+# modules and their arrow/parquet/datafusion deps. The daemon writer and the
+# Timeline Query Service build with this on; thin clients disable defaults and
+# link none of it, keeping only the columnar-free emit surface (TimelineRecord,
+# SessionContext, SinkConfig, routing, predicates, the ParquetActivitySink
+# channel sink).
+default = ["parquet"]
+parquet = ["dep:x0k-timeline-store", "dep:arrow", "dep:arrow-select", "dep:parquet"]
+
+[dev-dependencies]
+tempfile = "3.0"
+tokio-test = "0.4"
+tokio = {workspace = true, features = ["macros"]}
+tracing-subscriber = { workspace = true }

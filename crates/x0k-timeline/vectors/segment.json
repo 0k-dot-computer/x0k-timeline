@@ -1,0 +1,208 @@
+{
+  "clause": "timeline-public-surface §3",
+  "check": "segment.read",
+  "about": "A segment holds whole records in the order written. A truncated trailing frame is dropped and the frames before it are read. The input's records are written to one segment in order; `tail` says how its end is then damaged: `whole` (not at all), `torn_inside_last_record` (the last frame's length is whole and its record is cut short) or `torn_inside_last_length` (the file ends inside the last frame's length). The answer is the ids read, in order. A segment starts with a header frame naming its format: `header` in the input names another format, or `none` for a segment with no header, which reads as the format x0k writes today. A reader refuses a format it does not know by name and keeps the file, so a crash record is never lost to an upgrade.",
+  "vectors": [
+    {
+      "name": "a whole segment reads every record, in the order written",
+      "input": {
+        "records": [
+          {
+            "entry_kind": "log",
+            "id": "a",
+            "timestamp_us": 1700000000000001,
+            "level": "info",
+            "target": "conformance",
+            "retention_class": "log",
+            "fields": {},
+            "attributes": {},
+            "description": "first"
+          },
+          {
+            "entry_kind": "log",
+            "id": "b",
+            "timestamp_us": 1700000000000002,
+            "level": "info",
+            "target": "conformance",
+            "retention_class": "log",
+            "fields": {},
+            "attributes": {},
+            "description": "second"
+          },
+          {
+            "entry_kind": "log",
+            "id": "c",
+            "timestamp_us": 1700000000000003,
+            "level": "info",
+            "target": "conformance",
+            "retention_class": "log",
+            "fields": {},
+            "attributes": {},
+            "description": "third"
+          }
+        ],
+        "tail": "whole"
+      },
+      "expect": {
+        "ids": [
+          "a",
+          "b",
+          "c"
+        ]
+      }
+    },
+    {
+      "name": "a last frame torn inside its record is dropped and the frames before it are read",
+      "input": {
+        "records": [
+          {
+            "entry_kind": "log",
+            "id": "a",
+            "timestamp_us": 1700000000000001,
+            "level": "info",
+            "target": "conformance",
+            "retention_class": "log",
+            "fields": {},
+            "attributes": {},
+            "description": "first"
+          },
+          {
+            "entry_kind": "log",
+            "id": "b",
+            "timestamp_us": 1700000000000002,
+            "level": "info",
+            "target": "conformance",
+            "retention_class": "log",
+            "fields": {},
+            "attributes": {},
+            "description": "second"
+          },
+          {
+            "entry_kind": "log",
+            "id": "c",
+            "timestamp_us": 1700000000000003,
+            "level": "info",
+            "target": "conformance",
+            "retention_class": "log",
+            "fields": {},
+            "attributes": {},
+            "description": "third"
+          }
+        ],
+        "tail": "torn_inside_last_record"
+      },
+      "expect": {
+        "ids": [
+          "a",
+          "b"
+        ]
+      }
+    },
+    {
+      "name": "a last frame torn inside its length is dropped and the frames before it are read",
+      "input": {
+        "records": [
+          {
+            "entry_kind": "log",
+            "id": "a",
+            "timestamp_us": 1700000000000001,
+            "level": "info",
+            "target": "conformance",
+            "retention_class": "log",
+            "fields": {},
+            "attributes": {},
+            "description": "first"
+          },
+          {
+            "entry_kind": "log",
+            "id": "b",
+            "timestamp_us": 1700000000000002,
+            "level": "info",
+            "target": "conformance",
+            "retention_class": "log",
+            "fields": {},
+            "attributes": {},
+            "description": "second"
+          },
+          {
+            "entry_kind": "log",
+            "id": "c",
+            "timestamp_us": 1700000000000003,
+            "level": "info",
+            "target": "conformance",
+            "retention_class": "log",
+            "fields": {},
+            "attributes": {},
+            "description": "third"
+          }
+        ],
+        "tail": "torn_inside_last_length"
+      },
+      "expect": {
+        "ids": [
+          "a",
+          "b"
+        ]
+      }
+    },
+    {
+      "name": "an empty segment reads as no records",
+      "input": {
+        "records": [],
+        "tail": "whole"
+      },
+      "expect": {
+        "ids": []
+      }
+    },
+    {
+      "name": "a segment with no header reads as today's format",
+      "input": {
+        "records": [
+          {
+            "entry_kind": "log",
+            "id": "a",
+            "timestamp_us": 1700000000000001,
+            "level": "info",
+            "target": "conformance",
+            "retention_class": "log",
+            "fields": {},
+            "attributes": {},
+            "description": "first"
+          }
+        ],
+        "tail": "whole",
+        "header": "none"
+      },
+      "expect": {
+        "ids": [
+          "a"
+        ]
+      }
+    },
+    {
+      "name": "a format the reader does not know is refused by name and the file is kept",
+      "input": {
+        "records": [
+          {
+            "entry_kind": "log",
+            "id": "a",
+            "timestamp_us": 1700000000000001,
+            "level": "info",
+            "target": "conformance",
+            "retention_class": "log",
+            "fields": {},
+            "attributes": {},
+            "description": "first"
+          }
+        ],
+        "tail": "whole",
+        "header": "cbor-9"
+      },
+      "expect": {
+        "refused": "cbor-9",
+        "kept": true
+      }
+    }
+  ]
+}

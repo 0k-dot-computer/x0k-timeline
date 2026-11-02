@@ -1,0 +1,124 @@
+{
+  "clause": "timeline-public-surface §1",
+  "check": "record.fit",
+  "about": "Every record fits the record shape. A misfit names its field and nothing is coerced. Entry kinds are an open enum: a reader that does not know a kind keeps the record as foreign data. Stored records are open: a field the reader does not know is kept. Attributes are keyed `<namespace>.<name>`.",
+  "vectors": [
+    {
+      "name": "a minimal log record fits",
+      "input": {
+        "record": {
+          "entry_kind": "log",
+          "id": "r",
+          "timestamp_us": 1700000000000000,
+          "level": "info",
+          "target": "conformance",
+          "retention_class": "log",
+          "fields": {},
+          "attributes": {}
+        }
+      },
+      "expect": {
+        "fits": true
+      }
+    },
+    {
+      "name": "a record without its timestamp is a misfit naming timestamp_us",
+      "input": {
+        "record": {
+          "entry_kind": "log",
+          "id": "b",
+          "level": "info",
+          "target": "conformance",
+          "retention_class": "log",
+          "fields": {},
+          "attributes": {}
+        }
+      },
+      "expect": {
+        "fits": false,
+        "field": "timestamp_us"
+      }
+    },
+    {
+      "name": "a level that is not text is a misfit naming level, never coerced",
+      "input": {
+        "record": {
+          "entry_kind": "log",
+          "id": "r",
+          "timestamp_us": 1700000000000000,
+          "level": 3,
+          "target": "conformance",
+          "retention_class": "log",
+          "fields": {},
+          "attributes": {}
+        }
+      },
+      "expect": {
+        "fits": false,
+        "field": "level"
+      }
+    },
+    {
+      "name": "a record of a kind the reader does not know is kept as foreign data",
+      "input": {
+        "record": {
+          "entry_kind": "chariot.action",
+          "id": "r",
+          "timestamp_us": 1700000000000000,
+          "level": "info",
+          "target": "conformance",
+          "retention_class": "log",
+          "fields": {},
+          "attributes": {}
+        }
+      },
+      "expect": {
+        "fits": true,
+        "foreign": true
+      }
+    },
+    {
+      "name": "an attribute keyed without a namespace is a misfit naming attributes",
+      "input": {
+        "record": {
+          "entry_kind": "log",
+          "id": "r",
+          "timestamp_us": 1700000000000000,
+          "level": "info",
+          "target": "conformance",
+          "retention_class": "log",
+          "fields": {},
+          "attributes": {
+            "plain": 1
+          }
+        }
+      },
+      "expect": {
+        "fits": false,
+        "field": "attributes"
+      }
+    },
+    {
+      "name": "a field the reader does not know is kept",
+      "input": {
+        "record": {
+          "entry_kind": "log",
+          "id": "r",
+          "timestamp_us": 1700000000000000,
+          "level": "info",
+          "target": "conformance",
+          "retention_class": "log",
+          "fields": {},
+          "attributes": {},
+          "later_field": "kept"
+        }
+      },
+      "expect": {
+        "fits": true,
+        "kept": {
+          "later_field": "kept"
+        }
+      }
+    }
+  ]
+}

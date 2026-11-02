@@ -1,0 +1,48 @@
+#!/bin/sh
+# Forge-agnostic CI for this projected repo: build, test, and prove the
+# committed @generated code is byte-identical to a fresh tangle of the
+# literate sources. Any runner calls this script; nothing here is specific
+# to a hosting forge.
+set -eu
+# `--locked`: Cargo.lock is committed, and a lock cargo would rewrite is
+# drift the diff below must see, not silently absorb.
+cargo build --workspace --locked
+cargo test --workspace --locked
+# Lints, warnings denied. Two defect classes this closes. First, an item newer
+# than the `rust-version` the manifests declare: clippy's `incompatible_msrv`
+# is the only thing in this repository that checks that claim, so without this
+# step the MSRV is a comment. Second, ordinary lint rot in code a reader is
+# invited to read as documentation.
+cargo clippy --workspace --locked --all-targets -- -D warnings
+# The prose ships as the crate documentation, so a link in it that resolves to
+# nothing is a broken promise, not a cosmetic warning.
+RUSTDOCFLAGS="-D warnings" cargo doc --workspace --locked --no-deps
+# The tangler. This repository does not carry its source, so CI runs the
+# x0k-tangle release this projection was made with, installed under target/
+# by the release's own installer, which refuses an archive whose SHA-256 the
+# release's SHA256SUMS does not list. FOLIO_VERSION moves the pin;
+# X0K_TANGLE names a tangler already installed.
+FOLIO_VERSION="${FOLIO_VERSION:-0.6.0}"
+tangler="${X0K_TANGLE:-}"
+if [ -z "$tangler" ]; then
+  tangler="$PWD/target/x0k-folio-$FOLIO_VERSION/x0k-tangle"
+  if [ ! -x "$tangler" ]; then
+    curl -fsSL https://0k.computer/folio/install.sh |
+      FOLIO_VERSION="$FOLIO_VERSION" FOLIO_INSTALL_DIR="${tangler%/*}" sh
+  fi
+fi
+if [ ! -x "$tangler" ]; then
+  echo "error: no x0k-tangle at $tangler (installing x0k-folio $FOLIO_VERSION failed)" >&2
+  exit 1
+fi
+# Re-tangle every literate document (the tangler discovers the ones with a
+# tangle configuration). A tangle failure fails CI — it is never swallowed.
+"$tangler" tangle implementation --workspace .
+# The committed @generated code and .tangle-map.json sidecars must be exactly
+# what the tangler just wrote: any modified or untracked file is drift.
+if [ -n "$(git status --porcelain)" ]; then
+  echo "error: re-tangling the literate sources changed the tree:" >&2
+  git status --porcelain >&2
+  git --no-pager diff >&2
+  exit 1
+fi

@@ -1,0 +1,244 @@
+{
+  "clause": "timeline-public-surface §4",
+  "check": "families.fold",
+  "about": "What describe_timeline says of a family, from its rows. `rows` holds each row's family, time and fields. The answer is keyed by family, and each field by name: `type` is the narrowest type covering every observation, or null when the field was only ever null or its observations conflict, and `conflict` names the types seen when no one type covers them.",
+  "vectors": [
+    {
+      "name": "one_row",
+      "input": {
+        "rows": [
+          {
+            "family": "checkout",
+            "timestamp_us": 10,
+            "fields": {
+              "items": 3,
+              "coupon": "X",
+              "paid": true
+            }
+          }
+        ]
+      },
+      "expect": {
+        "checkout": {
+          "rows": 1,
+          "first_seen_us": 10,
+          "last_seen_us": 10,
+          "fields": {
+            "items": {
+              "type": "unsigned"
+            },
+            "coupon": {
+              "type": "text"
+            },
+            "paid": {
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "numbers_widen",
+      "input": {
+        "rows": [
+          {
+            "family": "a",
+            "timestamp_us": 2,
+            "fields": {
+              "n": 1
+            }
+          },
+          {
+            "family": "a",
+            "timestamp_us": 1,
+            "fields": {
+              "n": -1
+            }
+          },
+          {
+            "family": "a",
+            "timestamp_us": 3,
+            "fields": {
+              "n": 1.5
+            }
+          }
+        ]
+      },
+      "expect": {
+        "a": {
+          "rows": 3,
+          "first_seen_us": 1,
+          "last_seen_us": 3,
+          "fields": {
+            "n": {
+              "type": "float",
+              "conflict": []
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "fields_union",
+      "input": {
+        "rows": [
+          {
+            "family": "a",
+            "timestamp_us": 1,
+            "fields": {
+              "x": 1
+            }
+          },
+          {
+            "family": "a",
+            "timestamp_us": 2,
+            "fields": {
+              "y": "s"
+            }
+          }
+        ]
+      },
+      "expect": {
+        "a": {
+          "fields": {
+            "x": {
+              "type": "unsigned"
+            },
+            "y": {
+              "type": "text"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "a_conflict_is_reported_and_not_coerced",
+      "input": {
+        "rows": [
+          {
+            "family": "a",
+            "timestamp_us": 1,
+            "fields": {
+              "n": 1
+            }
+          },
+          {
+            "family": "a",
+            "timestamp_us": 2,
+            "fields": {
+              "n": "one"
+            }
+          }
+        ]
+      },
+      "expect": {
+        "a": {
+          "fields": {
+            "n": {
+              "type": null,
+              "conflict": [
+                "unsigned",
+                "text"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "a_field_only_ever_null_has_no_type",
+      "input": {
+        "rows": [
+          {
+            "family": "a",
+            "timestamp_us": 1,
+            "fields": {
+              "n": null
+            }
+          }
+        ]
+      },
+      "expect": {
+        "a": {
+          "fields": {
+            "n": {
+              "type": null,
+              "conflict": []
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "structure_is_one_type",
+      "input": {
+        "rows": [
+          {
+            "family": "a",
+            "timestamp_us": 1,
+            "fields": {
+              "n": {
+                "k": 1
+              }
+            }
+          },
+          {
+            "family": "a",
+            "timestamp_us": 2,
+            "fields": {
+              "n": [
+                1
+              ]
+            }
+          }
+        ]
+      },
+      "expect": {
+        "a": {
+          "fields": {
+            "n": {
+              "type": "structured"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "families_stay_apart",
+      "input": {
+        "rows": [
+          {
+            "family": "a",
+            "timestamp_us": 1,
+            "fields": {
+              "n": 1
+            }
+          },
+          {
+            "family": "b",
+            "timestamp_us": 2,
+            "fields": {
+              "n": "one"
+            }
+          }
+        ]
+      },
+      "expect": {
+        "a": {
+          "fields": {
+            "n": {
+              "type": "unsigned"
+            }
+          }
+        },
+        "b": {
+          "fields": {
+            "n": {
+              "type": "text"
+            }
+          }
+        }
+      }
+    }
+  ]
+}

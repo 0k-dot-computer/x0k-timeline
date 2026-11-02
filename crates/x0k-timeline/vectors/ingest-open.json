@@ -1,0 +1,28 @@
+{
+  "clause": "timeline-public-surface §2",
+  "check": "ingest.open",
+  "about": "A session agrees on shape fingerprints before its first record. `client` says how the client's record shape relates to the writer's: `same` (equal fingerprints) or `incompatible` (a shape the writer's does not read). A refusal names the shape that disagrees.",
+  "vectors": [
+    {
+      "name": "two ends holding the same record shape open a session",
+      "input": {
+        "client": "same"
+      },
+      "expect": {
+        "opened": true
+      }
+    },
+    {
+      "name": "a client whose record shape is incompatible is refused at open, by name",
+      "input": {
+        "client": "incompatible"
+      },
+      "expect": {
+        "opened": false,
+        "refused": {
+          "shape": "record"
+        }
+      }
+    }
+  ]
+}
