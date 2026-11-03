@@ -4,6 +4,7 @@
 pub mod json;
 pub mod overrides;
 pub mod pause;
+pub mod process;
 pub mod record;
 pub mod span;
 pub mod trace_context;

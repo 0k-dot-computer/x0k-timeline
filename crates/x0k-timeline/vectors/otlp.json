@@ -276,6 +276,399 @@
           }
         ]
       }
+    },
+    {
+      "name": "a process observation is a log row kept as an event, its process the observer and its subject in the attributes",
+      "input": {
+        "path": "/v1/logs",
+        "body": {
+          "resourceLogs": [
+            {
+              "resource": {
+                "attributes": [
+                  {
+                    "key": "service.name",
+                    "value": {
+                      "stringValue": "observer"
+                    }
+                  },
+                  {
+                    "key": "process.pid",
+                    "value": {
+                      "intValue": "100"
+                    }
+                  }
+                ]
+              },
+              "scopeLogs": [
+                {
+                  "scope": {
+                    "name": "process"
+                  },
+                  "logRecords": [
+                    {
+                      "timeUnixNano": "1700000000000000000",
+                      "severityNumber": 17,
+                      "eventName": "process.exit",
+                      "body": {
+                        "stringValue": "worker died"
+                      },
+                      "attributes": [
+                        {
+                          "key": "process.pid",
+                          "value": {
+                            "intValue": "4242"
+                          }
+                        },
+                        {
+                          "key": "process.command",
+                          "value": {
+                            "stringValue": "worker"
+                          }
+                        },
+                        {
+                          "key": "timeline.process.cause",
+                          "value": {
+                            "stringValue": "signalled"
+                          }
+                        },
+                        {
+                          "key": "timeline.process.signal",
+                          "value": {
+                            "stringValue": "SIGKILL"
+                          }
+                        },
+                        {
+                          "key": "timeline.process.oom",
+                          "value": {
+                            "stringValue": "yes"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "expect": {
+        "status": 200,
+        "records": [
+          {
+            "entry_kind": "log",
+            "event_type": "process.exit",
+            "retention_class": "event",
+            "process": {
+              "pid": 100,
+              "software_module": "observer"
+            },
+            "attributes": {
+              "process.pid": 4242,
+              "process.command": "worker",
+              "timeline.process.cause": "signalled",
+              "timeline.process.signal": "SIGKILL",
+              "timeline.process.oom": "yes"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "a process exit that does not say its cause is refused by name and the rest of its batch kept",
+      "input": {
+        "path": "/v1/logs",
+        "body": {
+          "resourceLogs": [
+            {
+              "resource": {
+                "attributes": [
+                  {
+                    "key": "service.name",
+                    "value": {
+                      "stringValue": "observer"
+                    }
+                  },
+                  {
+                    "key": "process.pid",
+                    "value": {
+                      "intValue": "100"
+                    }
+                  }
+                ]
+              },
+              "scopeLogs": [
+                {
+                  "scope": {
+                    "name": "process"
+                  },
+                  "logRecords": [
+                    {
+                      "timeUnixNano": "1700000000000000000",
+                      "severityNumber": 17,
+                      "eventName": "process.exit",
+                      "body": {
+                        "stringValue": "worker died"
+                      },
+                      "attributes": [
+                        {
+                          "key": "process.pid",
+                          "value": {
+                            "intValue": "4242"
+                          }
+                        },
+                        {
+                          "key": "timeline.process.oom",
+                          "value": {
+                            "stringValue": "unknown"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "timeUnixNano": "1700000000000000000",
+                      "severityNumber": 17,
+                      "eventName": "process.exit",
+                      "body": {
+                        "stringValue": "worker died"
+                      },
+                      "attributes": [
+                        {
+                          "key": "process.pid",
+                          "value": {
+                            "intValue": "4242"
+                          }
+                        },
+                        {
+                          "key": "process.command",
+                          "value": {
+                            "stringValue": "worker"
+                          }
+                        },
+                        {
+                          "key": "timeline.process.cause",
+                          "value": {
+                            "stringValue": "signalled"
+                          }
+                        },
+                        {
+                          "key": "timeline.process.signal",
+                          "value": {
+                            "stringValue": "SIGKILL"
+                          }
+                        },
+                        {
+                          "key": "timeline.process.oom",
+                          "value": {
+                            "stringValue": "yes"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "expect": {
+        "status": 200,
+        "response": {
+          "partialSuccess": {
+            "rejectedLogRecords": 1,
+            "errorMessage": {
+              "$contains": "timeline.process.cause"
+            }
+          }
+        },
+        "records": [
+          {
+            "event_type": "process.exit",
+            "attributes": {
+              "process.pid": 4242,
+              "timeline.process.cause": "signalled"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "an OOM answer outside yes, no and unknown is refused by name",
+      "input": {
+        "path": "/v1/logs",
+        "body": {
+          "resourceLogs": [
+            {
+              "resource": {
+                "attributes": [
+                  {
+                    "key": "service.name",
+                    "value": {
+                      "stringValue": "observer"
+                    }
+                  },
+                  {
+                    "key": "process.pid",
+                    "value": {
+                      "intValue": "100"
+                    }
+                  }
+                ]
+              },
+              "scopeLogs": [
+                {
+                  "scope": {
+                    "name": "process"
+                  },
+                  "logRecords": [
+                    {
+                      "timeUnixNano": "1700000000000000000",
+                      "severityNumber": 17,
+                      "eventName": "process.exit",
+                      "body": {
+                        "stringValue": "worker died"
+                      },
+                      "attributes": [
+                        {
+                          "key": "process.pid",
+                          "value": {
+                            "intValue": "4242"
+                          }
+                        },
+                        {
+                          "key": "process.command",
+                          "value": {
+                            "stringValue": "worker"
+                          }
+                        },
+                        {
+                          "key": "timeline.process.cause",
+                          "value": {
+                            "stringValue": "signalled"
+                          }
+                        },
+                        {
+                          "key": "timeline.process.signal",
+                          "value": {
+                            "stringValue": "SIGKILL"
+                          }
+                        },
+                        {
+                          "key": "timeline.process.oom",
+                          "value": {
+                            "stringValue": "maybe"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "expect": {
+        "status": 200,
+        "response": {
+          "partialSuccess": {
+            "rejectedLogRecords": 1,
+            "errorMessage": {
+              "$contains": "yes, no, unknown"
+            }
+          }
+        },
+        "records": []
+      }
+    },
+    {
+      "name": "a name that only looks like an observation is an ordinary log",
+      "input": {
+        "path": "/v1/logs",
+        "body": {
+          "resourceLogs": [
+            {
+              "resource": {
+                "attributes": [
+                  {
+                    "key": "service.name",
+                    "value": {
+                      "stringValue": "observer"
+                    }
+                  },
+                  {
+                    "key": "process.pid",
+                    "value": {
+                      "intValue": "100"
+                    }
+                  }
+                ]
+              },
+              "scopeLogs": [
+                {
+                  "scope": {
+                    "name": "process"
+                  },
+                  "logRecords": [
+                    {
+                      "timeUnixNano": "1700000000000000000",
+                      "severityNumber": 17,
+                      "eventName": "process.started",
+                      "body": {
+                        "stringValue": "worker died"
+                      },
+                      "attributes": [
+                        {
+                          "key": "process.pid",
+                          "value": {
+                            "intValue": "4242"
+                          }
+                        },
+                        {
+                          "key": "process.command",
+                          "value": {
+                            "stringValue": "worker"
+                          }
+                        },
+                        {
+                          "key": "timeline.process.cause",
+                          "value": {
+                            "stringValue": "signalled"
+                          }
+                        },
+                        {
+                          "key": "timeline.process.signal",
+                          "value": {
+                            "stringValue": "SIGKILL"
+                          }
+                        },
+                        {
+                          "key": "timeline.process.oom",
+                          "value": {
+                            "stringValue": "yes"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "expect": {
+        "status": 200,
+        "records": [
+          {
+            "entry_kind": "log",
+            "event_type": "process.started",
+            "retention_class": "log"
+          }
+        ]
+      }
     }
   ]
 }

@@ -37,6 +37,10 @@
 //! histogram, exponential histogram or summary has no row shape yet, and each
 //! of its points is refused by name.
 //!
+//! A log record named as a process observation (`process.exit` and the rest,
+//! `timeline-public-surface` §8) has to be one: its attributes are checked and
+//! a misfit refused by name, and it is kept as an event rather than a log.
+//!
 //! An attribute keyed `x0k.` is never taken: the prefix is x0k's own
 //! namespace, and no client of this receiver writes into it.
 
@@ -53,6 +57,7 @@ use axum::Router;
 use serde::Deserialize;
 use serde_json::{json, Map, Value};
 use tokio::sync::Notify;
+use x0k_timeline_record::process;
 use x0k_timeline_record::record::{IngestTimeline, LogEventData, TimelineRecord};
 use x0k_timeline_record::span::SpanData;
 use x0k_timeline_record::JsonValue;
@@ -280,14 +285,18 @@ fn log_record(process: &Process, target: &str, log: &LogRecord) -> Result<Timeli
     if nanos == 0 {
         return Err(Misfit::NoTime);
     }
-    let mut fields = process.attributes.clone();
-    fields.extend(attribute_map(&log.attributes));
-    let session_id = take_session(&mut fields);
     let event_type = log
         .event_name
         .clone()
         .filter(|name| !name.is_empty())
         .or_else(|| attribute_text(&log.attributes, "event.name").map(str::to_string));
+    let attributes = attribute_map(&log.attributes);
+    if let Some(event_type) = &event_type {
+        process::check_observation(event_type, &attributes).map_err(Misfit::Observation)?;
+    }
+    let mut fields = process.attributes.clone();
+    fields.extend(attributes);
+    let session_id = take_session(&mut fields);
     let trace_id = w3c_id(&log.trace_id, 32);
     let span_id = w3c_id(&log.span_id, 16);
     Ok(TimelineRecord::LogEvent(LogEventData {
@@ -400,6 +409,7 @@ enum Misfit {
     NoPointTime(String),
     NoValue(String),
     UnsupportedMetric(String, &'static str),
+    Observation(process::Misfit),
 }
 
 impl std::fmt::Display for Misfit {
@@ -408,6 +418,7 @@ impl std::fmt::Display for Misfit {
             Misfit::TraceId(span) => write!(f, "span {span:?}: traceId is not 16 bytes of hex"),
             Misfit::SpanId(span) => write!(f, "span {span:?}: spanId is not 8 bytes of hex"),
             Misfit::NoStart(span) => write!(f, "span {span:?}: no startTimeUnixNano"),
+            Misfit::Observation(misfit) => write!(f, "{misfit}"),
             Misfit::NoTime => write!(f, "a log record with neither timeUnixNano nor observedTimeUnixNano"),
             Misfit::NoPointTime(metric) => write!(f, "a data point of {metric:?} with neither timeUnixNano nor startTimeUnixNano"),
             Misfit::NoValue(metric) => write!(f, "a data point of {metric:?} with neither asDouble nor asInt"),

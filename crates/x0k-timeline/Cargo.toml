@@ -1,6 +1,6 @@
 [package]
 name = "x0k-timeline"
-version = "0.2.0"
+version = "0.3.0"
 edition = { workspace = true }
 license = "MIT"
 description = "One timeline for every process on a machine: OpenTelemetry in, SQL and MCP out"
@@ -19,7 +19,7 @@ path = "src/bin/x0k-timeline.rs"
 # Columnar engine — the timeline service is the place that links
 # arrow/parquet/datafusion: it writes and queries the store. Clients never do.
 x0k-timeline-store = { path = "../x0k-timeline-store" , version = "0.1.0" }
-x0k-timeline-sink = { path = "../x0k-timeline-sink", default-features = false, features = ["parquet"] , version = "0.1.0" }
+x0k-timeline-sink = { path = "../x0k-timeline-sink", default-features = false, features = ["parquet"] , version = "0.1.1" }
 arrow = { version = "58", default-features = false, features = ["ipc", "prettyprint"] }
 
 # The writer's IPC surface: the timeline socket clients forward to.
@@ -29,7 +29,12 @@ uuid = { workspace = true }
 
 # The OTLP/HTTP receiver (src/otlp.rs); the same axum x0k-mcp serves with.
 axum = "0.8"
-x0k-timeline-record = { path = "../x0k-timeline-record" , version = "0.1.0" }
+x0k-timeline-record = { path = "../x0k-timeline-record" , version = "0.1.1" }
+# `run` hands its records to the forwarder, so an outage keeps them in a segment.
+x0k-timeline-emit = { path = "../x0k-timeline-emit", features = ["auto-persist"] , version = "0.2.0" }
+libc = "0.2"
+# `service install` hands the service to systemd, launchd or Windows.
+service-manager = "0.11"
 
 rmcp = { version = "0.12", features = [
     "server",
@@ -50,4 +55,3 @@ tracing-subscriber = { workspace = true }
 
 [dev-dependencies]
 tempfile = "3"
-x0k-timeline-emit = { path = "../x0k-timeline-emit", features = ["auto-persist"] , version = "0.2.0" }

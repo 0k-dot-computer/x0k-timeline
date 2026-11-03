@@ -18,10 +18,15 @@ pub fn state_root() -> PathBuf {
         .unwrap_or_else(|| PathBuf::from("/tmp/.0k"))
 }
 
+/// The profile this service runs as: `X0K_PROFILE`, else `main`.
+pub fn profile() -> String {
+    std::env::var("X0K_PROFILE").unwrap_or_else(|_| "main".to_string())
+}
+
 /// This service's directory under [`state_root`]: `profiles/<X0K_PROFILE>`, with the
 /// profile `main` when none is named. Two profiles are two separate services.
 pub fn state_dir() -> PathBuf {
-    let profile = std::env::var("X0K_PROFILE").unwrap_or_else(|_| "main".to_string());
+    let profile = profile();
     state_root().join("profiles").join(profile)
 }
 

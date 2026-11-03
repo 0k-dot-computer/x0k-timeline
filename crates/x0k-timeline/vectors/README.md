@@ -25,7 +25,7 @@ string containing the text.
 | `record.json` | `record.fit`: whether one record fits the record shape, and if not, which field | §1 |
 | `ingest.json` | `ingest.batch`: what the writer accepts and refuses of a batch, and what reaches its store | §1, §2 |
 | `ingest-open.json` | `ingest.open`: whether a session opens, given the two ends' record shapes | §2 |
-| `otlp.json` | `otlp.map`: one OTLP/HTTP request to the writer, its answer and the records it writes | §2 |
+| `otlp.json` | `otlp.map`: one OTLP/HTTP request to the writer, its answer and the records it writes | §2, §8 |
 | `segment.json` | `segment.read`: the records read back from a segment whose end may be torn | §3 |
 | `reader.json` | `reader.filter`: what the base reader answers for a filter | §4 |
 | `families.json` | `families.fold`: what `describe_timeline` says of a family, from its rows | §4 |

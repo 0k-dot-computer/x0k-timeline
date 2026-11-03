@@ -20,7 +20,18 @@ pub fn log_to_stderr(default_filter: &str) {
 /// lock: a probe of `--help` must not sit on it and read as a wedged holder.
 pub async fn run_gesture(name: &str, argv: &[String]) -> Option<Result<()>> {
     let first = argv.get(1)?;
+    if first == "run" {
+        // The program's own stderr is passing through, so stay quiet in it.
+        log_to_stderr("error");
+        return Some(match crate::run::run_observed(&argv[2..]).await {
+            Ok(code) => std::process::exit(code),
+            Err(error) => Err(error),
+        });
+    }
     log_to_stderr("warn");
+    if first == "service" {
+        return Some(crate::service_install::run_service_command(&argv[2..]));
+    }
     if first == "query" {
         return Some(run_query_cli(name, &argv[2..]).await);
     }
@@ -32,7 +43,13 @@ pub async fn run_gesture(name: &str, argv: &[String]) -> Option<Result<()>> {
          and binds the timeline socket and the MCP port.\n\
          \n\
          Ad-hoc queries never need the lock:\n\
-         \x20 {name} query \"<SELECT ...>\" [--base-path <dir>] [--table]"
+         \x20 {name} query \"<SELECT ...>\" [--base-path <dir>] [--table]\n\
+         \n\
+         Record an unmodified program's output and how it ended:\n\
+         \x20 {name} run [--name <name>] -- <command> [args...]\n\
+         \n\
+         Keep the service running under this machine's service manager:\n\
+         \x20 {name} service install|uninstall|start|stop|status"
     );
     Some(if matches!(first.as_str(), "-h" | "--help") {
         Ok(())

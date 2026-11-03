@@ -26,9 +26,9 @@ tokio = {workspace = true, features = ["fs", "io-util", "macros", "process", "rt
 tracing = {workspace = true}
 tracing-subscriber = {workspace = true, features = ["chrono", "fmt", "json", "registry"]}
 uuid = {workspace = true}
-x0k-timeline-record = { path = "../x0k-timeline-record" , version = "0.1.0" }
+x0k-timeline-record = { path = "../x0k-timeline-record" , version = "0.1.1" }
 
-x0k-timeline-sink = { path = "../x0k-timeline-sink", optional = true, default-features = false , version = "0.1.0" }
+x0k-timeline-sink = { path = "../x0k-timeline-sink", optional = true, default-features = false , version = "0.1.1" }
 x0k-serialization = { path = "../x0k-serialization", optional = true , version = "0.1.0" }
 # Kept beside the other auto-persist dependencies: a `[target]` table below
 # would capture it.

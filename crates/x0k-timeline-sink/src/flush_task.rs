@@ -930,8 +930,16 @@ fn convert_timeline_batch(
         }
     }
 
-    if !log_events.is_empty() {
-        let events: Vec<crate::types::LogEventData> = log_events.into_iter().cloned().collect();
+    // Retention deletes by file and a file takes its class from its first row,
+    // so a batch holds one class.
+    let (kept_as_events, logs): (Vec<_>, Vec<_>) = log_events
+        .into_iter()
+        .cloned()
+        .partition(|event| event.retention_class() == crate::routing::RetentionClass::Event);
+    for events in [logs, kept_as_events] {
+        if events.is_empty() {
+            continue;
+        }
         match unified_schema::log_event_to_batch(&events) {
             Ok(b) => result.push(b),
             Err(e) => error!(error = %e, "Failed to convert log events to RecordBatch"),
@@ -1791,6 +1799,23 @@ mod segment_intake_tests {
     use super::*;
     use crate::segment::{encode_frame, hold_owner_lock, SegmentPaths};
     use x0k_timeline_record::record::LogEventData;
+
+    /// Retention deletes by file, so a column saying `event` is not enough: an
+    /// observation sharing a `log_` file would still go with the logs.
+    #[test]
+    fn a_process_observation_is_filed_as_an_event_beside_ordinary_logs() {
+        let observed = TimelineRecord::LogEvent(crate::types::LogEventData {
+            id: "observed".to_string(),
+            timestamp_us: 1,
+            event_type: Some("process.exit".to_string()),
+            ..Default::default()
+        });
+        let batches =
+            convert_timeline_batch(&[log("plain"), observed], &SessionContext::from_env());
+        let mut prefixes: Vec<_> = batches.iter().map(entry_kind_prefix).collect();
+        prefixes.sort();
+        assert_eq!(prefixes, ["event_", "log_"]);
+    }
 
     fn log(id: &str) -> TimelineRecord {
         TimelineRecord::LogEvent(LogEventData { id: id.into(), ..Default::default() })

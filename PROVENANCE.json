@@ -1,8 +1,8 @@
 {
   "schema": "x0k.provenance/v1",
   "publication_uri": "x0k:publication/x0k-timeline",
-  "corpus_rev": "rkkrmtnpvttlpxmwxxqmqwnsnqmvntnl",
-  "corpus_commit": "c8475abfbde599ddb0e0ed54a5239c5b9e4a6d74",
+  "corpus_rev": "npxlutwpksqxxmrtnvzttvnvslynymop",
+  "corpus_commit": "8aa5a6bf596e30339d65651907051f7070402468",
   "path_map": {
     "decisions/architecture/substrate/timeline-public-surface.md": "corpora/x0k/decisions/architecture/substrate/timeline-public-surface.md",
     "implementation/local-ipc/local-ipc.md": "corpora/x0k/implementation/local-ipc/local-ipc.md",

@@ -223,3 +223,176 @@ fn a_process_linking_only_the_emit_crate_writes_across_an_outage() {
     until("the span sent after it", || sees("after_the_service_came_up"));
 }
 
+/// `x0k-timeline run` with this home's socket, so a test can have the service
+/// up or down around it.
+fn observed(home: &Path, socket: &Path, program: &str) -> std::process::Output {
+    scratch_env(&mut Command::new(BIN), home)
+        .env("X0K_TIMELINE_SOCKET", socket)
+        .args(["run", "--", "/bin/sh", "-c", program])
+        .output()
+        .expect("run x0k-timeline run")
+}
+
+fn start_service(home: &Path, socket: &Path) -> Service {
+    let otlp = free_port();
+    Service(
+        scratch_env(&mut Command::new(BIN), home)
+            .env("X0K_TIMELINE_SOCKET", socket)
+            .env("X0K_TIMELINE_OTLP_PORT", otlp.to_string())
+            .env("X0K_TIMELINE_QUERY_MCP_LISTEN", format!("127.0.0.1:{}", free_port()))
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .spawn()
+            .expect("start the service"),
+    )
+}
+
+/// The rows of this home's store matching `filter`, as JSON text, once any exist.
+fn rows(home: &Path, filter: &str) -> String {
+    let sql = format!("SELECT event_type, description, fields_json FROM timeline WHERE {filter}");
+    until(filter, || {
+        let output = scratch_env(&mut Command::new(BIN), home)
+            .args(["query", &sql, "--base-path"])
+            .arg(home.join("activities"))
+            .output()
+            .ok()?;
+        let text = String::from_utf8_lossy(&output.stdout).into_owned();
+        (output.status.success() && text.contains("event_type")).then_some(text)
+    })
+}
+
+/// The attributes of the only row `text` holds.
+fn attributes(text: &str) -> serde_json::Value {
+    let rows: serde_json::Value = serde_json::from_str(text).expect("rows as JSON");
+    let [row] = rows.as_array().expect("an array of rows").as_slice() else {
+        panic!("one row, in {text}");
+    };
+    row["fields_json"].clone()
+}
+
+#[test]
+fn a_program_under_run_is_recorded_and_keeps_its_exit_code() {
+    let home = tempfile::tempdir().unwrap();
+    let socket = home.path().join("timeline.sock");
+    let _service = start_service(home.path(), &socket);
+    until("the service's socket", || socket.exists().then_some(()));
+
+    let output = observed(home.path(), &socket, "echo said-out; echo said-err >&2; exit 3");
+
+    assert_eq!(output.status.code(), Some(3), "run exits as its program did");
+    assert!(String::from_utf8_lossy(&output.stdout).contains("said-out"), "stdout still reaches the terminal");
+    assert!(String::from_utf8_lossy(&output.stderr).contains("said-err"), "stderr still reaches the terminal");
+    let exit = attributes(&rows(home.path(), "event_type = 'process.exit'"));
+    assert_eq!(exit["timeline.process.cause"], "exited");
+    assert_eq!(exit["process.exit.code"], 3);
+    assert_eq!(exit["timeline.process.oom"], "no");
+    let spawned = attributes(&rows(home.path(), "event_type = 'process.spawned'"));
+    assert!(spawned["process.command"].as_str().unwrap().starts_with("/bin/sh"));
+    assert_eq!(exit["process.pid"], spawned["process.pid"], "both name the program");
+    let said = attributes(&rows(home.path(), "description = 'said-err'"));
+    assert_eq!(said["log.iostream"], "stderr", "a line says which stream it came from");
+}
+
+#[test]
+fn a_program_that_ran_while_the_service_was_down_is_recorded_when_it_comes_back() {
+    let home = tempfile::tempdir().unwrap();
+    let socket = home.path().join("timeline.sock");
+
+    let output = observed(home.path(), &socket, "echo alone; exit 4");
+    assert_eq!(output.status.code(), Some(4), "the outage costs the program nothing");
+
+    let _service = start_service(home.path(), &socket);
+    let exit = attributes(&rows(home.path(), "event_type = 'process.exit'"));
+    assert_eq!(exit["process.exit.code"], 4);
+    rows(home.path(), "description = 'alone'");
+}
+
+#[test]
+fn a_killed_program_is_recorded_as_signalled_with_oom_unknown() {
+    let home = tempfile::tempdir().unwrap();
+    let socket = home.path().join("timeline.sock");
+    let _service = start_service(home.path(), &socket);
+    until("the service's socket", || socket.exists().then_some(()));
+
+    let output = observed(home.path(), &socket, "kill -9 $$");
+
+    assert_eq!(output.status.code(), Some(137), "128 plus the signal, as a shell reports it");
+    let exit = attributes(&rows(home.path(), "event_type = 'process.exit'"));
+    assert_eq!(exit["timeline.process.cause"], "signalled");
+    assert_eq!(exit["timeline.process.signal"], "SIGKILL");
+    assert_eq!(exit["timeline.process.oom"], "unknown", "SIGKILL cannot rule out the OOM killer");
+}
+
+#[test]
+fn a_program_that_cannot_start_is_named_and_exits_as_a_shell_would() {
+    let home = tempfile::tempdir().unwrap();
+    let output = scratch_env(&mut Command::new(BIN), home.path())
+        .env("X0K_TIMELINE_SOCKET", home.path().join("timeline.sock"))
+        .args(["run", "--", "/no/such/program"])
+        .output()
+        .unwrap();
+    assert_eq!(output.status.code(), Some(127));
+    assert!(String::from_utf8_lossy(&output.stderr).contains("/no/such/program"));
+}
+
+/// Uninstalls on the way out, so a failed run leaves no service behind.
+struct Installed {
+    home: tempfile::TempDir,
+    profile: String,
+    otlp: u16,
+    mcp: u16,
+}
+
+impl Installed {
+    fn service(&self, verb: &str) -> std::process::Output {
+        Command::new(BIN)
+            .env("X0K_HOME", self.home.path())
+            .env("X0K_PROFILE", &self.profile)
+            .env("X0K_TIMELINE_SOCKET", self.home.path().join("timeline.sock"))
+            .env("X0K_TIMELINE_OTLP_PORT", self.otlp.to_string())
+            .env("X0K_TIMELINE_QUERY_MCP_LISTEN", format!("127.0.0.1:{}", self.mcp))
+            .args(["service", verb])
+            .output()
+            .expect("run x0k-timeline service")
+    }
+
+    fn main_pid(&self) -> Option<String> {
+        let unit = format!("0k-x0k-timeline-{}", self.profile);
+        let output = Command::new("systemctl")
+            .args(["--user", "show", "--property=MainPID", "--value", &unit])
+            .output()
+            .ok()?;
+        let pid = String::from_utf8_lossy(&output.stdout).trim().to_string();
+        (!pid.is_empty() && pid != "0").then_some(pid)
+    }
+}
+
+impl Drop for Installed {
+    fn drop(&mut self) {
+        let _ = self.service("uninstall");
+    }
+}
+
+#[test]
+#[ignore = "installs a real user service; run by hand where systemd --user runs"]
+fn an_installed_service_comes_back_from_a_crash_and_uninstalls_clean() {
+    let installed = Installed {
+        home: tempfile::tempdir().unwrap(),
+        profile: format!("probe{}", std::process::id()),
+        otlp: free_port(),
+        mcp: free_port(),
+    };
+    let said = |output: &std::process::Output| String::from_utf8_lossy(&output.stdout).into_owned();
+
+    let install = installed.service("install");
+    assert!(install.status.success(), "{}", String::from_utf8_lossy(&install.stderr));
+    until("the service running", || said(&installed.service("status")).contains("running").then_some(()));
+    let first = until("a main pid", || installed.main_pid());
+
+    assert!(Command::new("kill").args(["-9", &first]).status().unwrap().success());
+    until("the OS to restart it", || installed.main_pid().filter(|pid| *pid != first));
+    until("the service running again", || said(&installed.service("status")).contains("running").then_some(()));
+
+    assert!(installed.service("uninstall").status.success());
+    assert!(said(&installed.service("status")).contains("not installed"));
+}

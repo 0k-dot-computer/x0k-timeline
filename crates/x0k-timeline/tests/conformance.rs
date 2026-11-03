@@ -397,6 +397,7 @@ fn published(record: &TimelineRecord) -> Value {
                 .as_deref()
                 .and_then(|f| serde_json::from_str(f).ok())
                 .unwrap_or_else(|| json!({}));
+            put("retention_class", json!(record.retention_class().as_str()));
             put("attributes", attributes);
         }
         TimelineRecord::Activity(a, _) => {

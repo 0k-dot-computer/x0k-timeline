@@ -800,7 +800,8 @@ pub fn log_event_to_batch(events: &[crate::types::LogEventData]) -> anyhow::Resu
     let ids: Vec<&str> = events.iter().map(|e| e.id.as_str()).collect();
     let entry_kinds: Vec<&str> = vec![ENTRY_KIND_LOG; len];
     let storage_tiers: Vec<&str> = vec![STORAGE_TIER_EPHEMERAL; len];
-    let retention_classes: Vec<&str> = vec![retention_class_str(RetentionClass::Log); len];
+    let retention_classes: Vec<&str> =
+        events.iter().map(|e| retention_class_str(e.retention_class())).collect();
 
     let timestamps: Vec<i64> = events.iter().map(|e| e.timestamp_us as i64).collect();
     let durations: Vec<Option<i64>> = vec![None; len];

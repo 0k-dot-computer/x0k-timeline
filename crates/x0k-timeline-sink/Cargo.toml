@@ -1,6 +1,6 @@
 [package]
 name = "x0k-timeline-sink"
-version = "0.1.0"
+version = "0.1.1"
 edition = { workspace = true }
 description = "The timeline's write path: the flush task, the shared write-ahead log and segment intake"
 license = "MIT"
@@ -13,7 +13,7 @@ name = "x0k_activity_sink"
 
 [dependencies]
 # Core x0k dependencies
-x0k-timeline-record = { path = "../x0k-timeline-record" , version = "0.1.0" }
+x0k-timeline-record = { path = "../x0k-timeline-record" , version = "0.1.1" }
 # Postcard frames of the local timeline segment (base build)
 x0k-serialization = { path = "../x0k-serialization" , version = "0.1.0" }
 

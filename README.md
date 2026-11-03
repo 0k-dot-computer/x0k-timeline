@@ -26,6 +26,20 @@ x0k-timeline` does the same on the release `rust-toolchain.toml` names, the one
 CI uses. With no arguments the program is the service. One instance runs per
 state directory, and a second refuses to start.
 
+To keep it running after a crash or a reboot, hand it to your machine's service
+manager:
+
+```sh
+x0k-timeline service install
+```
+
+`uninstall`, `start`, `stop` and `status` do what they say. It installs a user
+service where the manager has them, and takes the `X0K_` settings of the shell you
+ran it in. systemd restarts it after a crash, and leaves it stopped if you stopped
+it. launchd keeps it running whatever the reason it ended. Windows has no user
+services here, so `install` needs an administrator, and restarts are limited.
+Only the systemd path has been exercised so far.
+
 It listens on two loopback ports:
 
 | Port | What it serves |
@@ -76,6 +90,25 @@ tracing::subscriber::set_global_default(tracing_subscriber::registry().with(laye
 
 `socket_path` is the service's socket and `profile_dir` is its directory under
 `$X0K_HOME/profiles/`. This crate has no stable API yet, so pin it.
+
+A program you cannot change can still write here:
+
+```sh
+x0k-timeline run -- ./worker --port 8080
+```
+
+Its output still reaches your terminal, each line is a record, and how it ended
+is a record, even if the service was down at the time: those wait in a segment
+and arrive when it comes back. `run` leaves with the program's exit code and does
+no restarts. The one cost is that the program writes to a pipe rather than a
+terminal, so some programs buffer their output or drop their colours.
+
+A process cannot report its own death, so anything watching it can do that
+instead, which is what `run` does. Send an OTLP log record named `process.exit`, with `process.pid`,
+`timeline.process.cause` and `timeline.process.oom`, and the attributes you know.
+The record's own process is the observer. It is kept for as long as an event
+rather than a log, because it is the evidence left when the logs are gone.
+Section 8 of the public-surface decision has the full shape.
 
 ## Read it
 
@@ -128,8 +161,8 @@ Everything comes from the environment.
 
 ## What it promises
 
-This is release 0.2, and the first public one. It promises the OTLP ingest, the
-SQL surface, the tool names and the record format they return. The promises are
+This is release 0.3. It promises the OTLP ingest, the SQL surface, the tool
+names, the record format they return, and what a process observation must carry. The promises are
 written down in
 [the public-surface decision](decisions/architecture/substrate/timeline-public-surface.md).
 
@@ -153,7 +186,8 @@ builds. These are not here yet, whatever it says:
 `crates/x0k-timeline/vectors/` holds the conformance vectors: files any
 implementation of these promises can run. The vectors say what a writer
 accepts and refuses, how an OTLP request maps to records, how a torn segment
-reads back, and how a pause behaves. `cargo test -p x0k-timeline --test
+reads back, how a pause behaves, and which process observations are kept and
+which are refused. `cargo test -p x0k-timeline --test
 conformance` runs them here, and says `NOT RUN` by name for any check this
 release does not hold.
 

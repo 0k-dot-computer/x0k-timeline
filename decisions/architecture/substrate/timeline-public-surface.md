@@ -222,9 +222,9 @@ the publication ships.
 Behind the surface, and never a dependency of it: fleet placement
 (`observability-timeline` §15, `durability-policy`,
 `data-interest-and-topology`), how a collector is chosen and replaced, the entry store, the `x0k` attribute namespace's meaning,
-the `conversation` kind and its query-time join, the ingesters of
-supervisor observations and oracle verdicts, and x0k's process supervision
-of the writer.
+the `conversation` kind and its query-time join, the ingesters of oracle
+verdicts, and x0k's process supervision of the writer. The supervisor's
+observations are public in shape (§8), and how x0k produces them is not.
 
 The writer hands record-class rows to a record store when its embedder
 provides one; x0k provides the entry store, so in x0k they are facts every
@@ -268,6 +268,44 @@ it resumes.
 An embedder can start the writer paused. A restart returns the writer to
 the state its embedder starts it in, so a pause taken by hand does not
 outlive the writer.
+
+### 8. A process's life is observed in the same record
+
+**Decides:** how something watching a process records what the process
+cannot say about itself.
+**Invariants:** an observation is a `log` record whose `event_type` names it,
+so anything that speaks OTLP can write one; the record's `process` is the
+observer and its attributes name the subject, so a reader can always tell an
+observation from an application's claim about itself; an observer that could
+not know whether an OOM kill ended a process says `unknown`, never `no`; an
+observation is kept as an `event`, not a `log`.
+**On failure:** a record named as an observation that is not one is refused
+by name, and the other records of its batch are kept.
+**Checked by:** `otlp.json` in the timeline conformance suite.
+
+A process that fails to start, is OOM-killed or panics after its subscriber
+has gone cannot report it, and silence reads as nothing having happened. So
+any observer can report it instead: a wrapper, a service manager's hook or a
+supervisor. The events are the lifecycle grammar of `platform-supervision`
+§7.
+
+| `event_type` | Attributes it must carry |
+|---|---|
+| `process.spawned`, `process.adopted` | `process.pid` |
+| `process.exit` | `process.pid`, `timeline.process.oom` (`yes`, `no`, `unknown`), `timeline.process.cause` (`exited` with `process.exit.code`, `signalled` with `timeline.process.signal`, or `unknown`) |
+| `process.abandoned` | `process.pid`, `timeline.process.bound_ms` |
+
+Attributes use OpenTelemetry's `process.*` names where it has them, such as
+`process.command`. It has none for a signal, an OOM kill or a cause, and a
+namespace changes only by its owner (§1), so those are `timeline.process.*`.
+
+An observation is a log record and not a new entry kind because OTLP, the
+ingest any process can reach, cannot name a kind: the event name would decide
+it either way, and a kind would ask every observer for more than a log.
+
+Its class is `event` because evidence of a death has to outlast the logs
+around it. Retention deletes by file, so a batch of log records is split by
+class before it is written.
 
 ## Rationale
 

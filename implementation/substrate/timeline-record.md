@@ -27,7 +27,7 @@ types (a265f9fe).
 ```toml {#manifest file="Cargo.toml"}
 [package]
 name = "x0k-timeline-record"
-version = "0.1.0"
+version = "0.1.1"
 edition = { workspace = true }
 license = "MIT"
 description = "The types the timeline's emitter, writer and reader share: the record, spans, ingest and trace overrides."
@@ -57,6 +57,7 @@ postcard = "1.0"
 pub mod json;
 pub mod overrides;
 pub mod pause;
+pub mod process;
 pub mod record;
 pub mod span;
 pub mod trace_context;
@@ -786,9 +787,20 @@ impl TimelineRecord {
     pub fn retention_class(&self) -> RetentionClass {
         match self {
             Self::Span(_) => RetentionClass::Span,
-            Self::LogEvent(_) => RetentionClass::Log,
+            Self::LogEvent(event) => event.retention_class(),
             Self::Activity(_, StorageTier::Record) => RetentionClass::Record,
             Self::Activity(..) | Self::Conversation(_) => RetentionClass::Event,
+        }
+    }
+}
+
+impl LogEventData {
+    /// How long this log row is kept. A process observation outlives the
+    /// logs around it, because it is the evidence left when they are gone.
+    pub fn retention_class(&self) -> RetentionClass {
+        match self.event_type.as_deref() {
+            Some(event_type) if crate::process::is_observation(event_type) => RetentionClass::Event,
+            _ => RetentionClass::Log,
         }
     }
 }
@@ -1384,6 +1396,106 @@ pub struct PauseState {
     pub since_us: Option<u64>,
     pub reason: Option<String>,
     pub discarded: DiscardedRows,
+}
+```
+
+## What an observer saw of a process
+
+A process cannot record its own death, so something watching it does
+(`timeline-public-surface` §8). The record is a `log` row named for what
+happened. The row's own process is the observer and its attributes name the
+subject, so a reader can always tell a claim from an observation. Nothing
+here depends on who the observer is, so a supervisor, a wrapper or a shell
+hook can each write one. Names follow OpenTelemetry's `process.*` attributes
+where they exist; it has none for a signal, an OOM kill or a cause, so those
+are the timeline's own.
+
+<a name="chunk-process"></a><sub>[`src/process.rs`](../../crates/x0k-timeline-record/src/process.rs) · `#process`</sub>
+
+```rust {#process file="src/process.rs"}
+//! The process observation: what an observer saw of a process.
+
+use serde_json::{Map, Value};
+
+/// A process was started.
+pub const SPAWNED: &str = "process.spawned";
+/// A running process came under this observer, inherited from another.
+pub const ADOPTED: &str = "process.adopted";
+/// A process ended.
+pub const EXIT: &str = "process.exit";
+/// A bounded wait on a process ran out, with the process left as it was.
+pub const ABANDONED: &str = "process.abandoned";
+
+/// The subject's process id.
+pub const PID: &str = "process.pid";
+/// The subject's command.
+pub const COMMAND: &str = "process.command";
+/// The code a process exited with.
+pub const EXIT_CODE: &str = "process.exit.code";
+/// Why a process ended: `exited`, `signalled` or `unknown`.
+pub const CAUSE: &str = "timeline.process.cause";
+/// The signal that ended a process.
+pub const SIGNAL: &str = "timeline.process.signal";
+/// Whether an OOM kill ended it: `yes`, `no` or `unknown`. An observer that
+/// could not know says `unknown`, never `no`.
+pub const OOM: &str = "timeline.process.oom";
+/// The bound, in milliseconds, that a wait ran out against.
+pub const BOUND_MS: &str = "timeline.process.bound_ms";
+
+/// Whether `event_type` names a process observation.
+pub fn is_observation(event_type: &str) -> bool {
+    matches!(event_type, SPAWNED | ADOPTED | EXIT | ABANDONED)
+}
+
+/// Why a row named as an observation is not one.
+#[derive(Debug, PartialEq, Eq, thiserror::Error)]
+pub enum Misfit {
+    #[error("{event} needs {attribute}")]
+    Missing { event: String, attribute: &'static str },
+    #[error("{event}: {attribute} must be one of {allowed}")]
+    NotOneOf { event: String, attribute: &'static str, allowed: &'static str },
+}
+
+/// Whether the attributes of a row named `event_type` make an observation.
+/// A row that is not named as one always fits.
+pub fn check_observation(event_type: &str, attributes: &Map<String, Value>) -> Result<(), Misfit> {
+    if !is_observation(event_type) {
+        return Ok(());
+    }
+    let missing = |attribute| Misfit::Missing { event: event_type.to_string(), attribute };
+    let integer = |attribute| match attributes.get(attribute).map(Value::is_i64) {
+        Some(true) => Ok(()),
+        _ => Err(missing(attribute)),
+    };
+    let one_of = |attribute, allowed: &'static [&'static str], listed| {
+        let value = attributes.get(attribute).ok_or_else(|| missing(attribute))?;
+        match value.as_str() {
+            Some(text) if allowed.contains(&text) => Ok(text.to_string()),
+            _ => Err(Misfit::NotOneOf {
+                event: event_type.to_string(),
+                attribute,
+                allowed: listed,
+            }),
+        }
+    };
+    integer(PID)?;
+    match event_type {
+        EXIT => {
+            one_of(OOM, &["yes", "no", "unknown"], "yes, no, unknown")?;
+            match one_of(CAUSE, &["exited", "signalled", "unknown"], "exited, signalled, unknown")?
+                .as_str()
+            {
+                "exited" => integer(EXIT_CODE),
+                "signalled" => match attributes.get(SIGNAL).and_then(Value::as_str) {
+                    Some(signal) if !signal.is_empty() => Ok(()),
+                    _ => Err(missing(SIGNAL)),
+                },
+                _ => Ok(()),
+            }
+        }
+        ABANDONED => integer(BOUND_MS),
+        _ => Ok(()),
+    }
 }
 ```
 

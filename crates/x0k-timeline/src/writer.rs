@@ -116,7 +116,7 @@ pub async fn spawn_timeline_pipeline(
         )
         .await;
     });
-    info!(path = %config.timeline_dir.display(), "timeline flush task started (Parquet + WAL + SHM)");
+    info!(path = %config.timeline_dir.display(), "timeline flush task started (Parquet + WAL)");
     Some(handle)
 }
 

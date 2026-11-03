@@ -403,9 +403,20 @@ impl TimelineRecord {
     pub fn retention_class(&self) -> RetentionClass {
         match self {
             Self::Span(_) => RetentionClass::Span,
-            Self::LogEvent(_) => RetentionClass::Log,
+            Self::LogEvent(event) => event.retention_class(),
             Self::Activity(_, StorageTier::Record) => RetentionClass::Record,
             Self::Activity(..) | Self::Conversation(_) => RetentionClass::Event,
+        }
+    }
+}
+
+impl LogEventData {
+    /// How long this log row is kept. A process observation outlives the
+    /// logs around it, because it is the evidence left when they are gone.
+    pub fn retention_class(&self) -> RetentionClass {
+        match self.event_type.as_deref() {
+            Some(event_type) if crate::process::is_observation(event_type) => RetentionClass::Event,
+            _ => RetentionClass::Log,
         }
     }
 }
